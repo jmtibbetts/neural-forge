@@ -59,18 +59,21 @@ Write-Host ""
 $torchVer    = & $venvPy -c "import torch; print(torch.__version__)" 2>$null
 $blackwellOk = $false
 if ($torchVer) {
-    $smCheck = & $venvPy -c "import torch; caps=[torch.cuda.get_device_capability(i) for i in range(torch.cuda.device_count())]; print(any(c[0]>=10 for c in caps))" 2>$null
-    if ($smCheck -eq "True") { $blackwellOk = $true }
+    # RTX 5090 = sm_120 (Ada Lovelace-class Blackwell). Nightly dev builds support it.
+    # We consider it OK if torch version contains "dev" (nightly) OR sm >= 12
+    $smCheck = & $venvPy -c "import torch; caps=[torch.cuda.get_device_capability(i) for i in range(torch.cuda.device_count())]; print(any(c[0]>=12 for c in caps))" 2>$null
+    $isNightly = $torchVer -match "dev"
+    if ($smCheck -eq "True" -or $isNightly) { $blackwellOk = $true }
 }
 
 if ($blackwellOk) {
-    Write-Host "  [SKIP] PyTorch nightly already installed with Blackwell support. ($torchVer)" -ForegroundColor DarkGray
+    Write-Host "  [SKIP] PyTorch nightly already installed and supports RTX 5090 (sm_120). ($torchVer)" -ForegroundColor DarkGray
 } else {
     if ($torchVer) {
-        Write-Host "  [UPGRADE] Existing PyTorch has no Blackwell kernel. Reinstalling nightly..." -ForegroundColor Yellow
+        Write-Host "  [UPGRADE] Existing PyTorch does not support RTX 5090 (sm_120). Reinstalling nightly..." -ForegroundColor Yellow
         & $venvPip uninstall torch torchvision torchaudio -y --quiet 2>$null
     } else {
-        Write-Host "  [2/7] Installing PyTorch nightly + CUDA 12.8 for RTX 5090 Blackwell..." -ForegroundColor Yellow
+        Write-Host "  [2/7] Installing PyTorch nightly + CUDA 12.8 for RTX 5090 (sm_120)..." -ForegroundColor Yellow
     }
     Write-Host "  NOTE: ~2-3 GB download. Please wait..." -ForegroundColor DarkGray
     & $venvPip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu128
@@ -129,7 +132,7 @@ if (Is-Installed "flask") {
     Write-Host "  [SKIP] App dependencies already installed." -ForegroundColor DarkGray
 } else {
     Write-Host "  [6/7] Installing app dependencies..." -ForegroundColor Yellow
-    & $venvPip install yfinance anthropic flask flask-socketio flask-cors eventlet plotly matplotlib seaborn nvidia-ml-py psutil GPUtil numpy pandas scikit-learn tqdm rich click pyyaml python-dotenv requests aiohttp jupyter ipywidgets ipykernel pytest black ruff
+    & $venvPip install yfinance anthropic flask flask-socketio flask-cors eventlet plotly matplotlib seaborn nvidia-ml-py3 psutil GPUtil numpy pandas scikit-learn tqdm rich click pyyaml python-dotenv requests aiohttp jupyter ipywidgets ipykernel pytest black ruff
     Write-Host "  Done." -ForegroundColor Green
 }
 

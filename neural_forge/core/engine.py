@@ -4,6 +4,9 @@ Manages device selection, global config, and framework lifecycle.
 """
 
 import os
+import warnings
+# Suppress deprecated pynvml warning — use nvidia-ml-py3 instead
+warnings.filterwarnings("ignore", message=".*pynvml.*", category=FutureWarning)
 import torch
 import logging
 from dataclasses import dataclass, field
