@@ -1,20 +1,28 @@
 # ============================================================
 # NeuralForge Requirements
 # Optimized for: RTX 5090 32GB | i9-284K | 128GB DDR5 | CUDA 12.x
+#
+# ⚠️  WINDOWS INSTALL ORDER MATTERS — use setup_windows.ps1
+#     or follow the manual steps below.
+#
+# Manual install order:
+#   1. pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+#   2. pip install torch-geometric
+#   3. pip install pyg-lib torch-scatter torch-sparse torch-cluster torch-spline-conv -f https://data.pyg.org/whl/torch-2.3.0+cu121.html
+#   4. pip install -r requirements.txt
 # ============================================================
 
 # --- Core Deep Learning ---
-torch>=2.3.0
-torchvision>=0.18.0
-torchaudio>=2.3.0
-# Install with: pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+# Install these FIRST via the index URL above (CUDA wheels):
+# torch>=2.3.0
+# torchvision>=0.18.0
+# torchaudio>=2.3.0
 
-# --- PyTorch Geometric ---
+# --- PyTorch Geometric (core — no binary extensions here) ---
 torch-geometric>=2.5.0
-torch-scatter
-torch-sparse
-torch-cluster
-torch-spline-conv
+# Binary extensions (torch-scatter, torch-sparse, torch-cluster, torch-spline-conv)
+# must be installed via: pip install ... -f https://data.pyg.org/whl/torch-2.3.0+cu121.html
+# See scripts/setup_windows.ps1 for the automated one-shot setup.
 
 # --- ONNX ---
 onnx>=1.16.0
