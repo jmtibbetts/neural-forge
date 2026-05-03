@@ -10,6 +10,7 @@ import math
 from pathlib import Path
 from typing import Callable, Optional
 
+import numpy as np
 import torch
 import torch.nn as nn
 from torch.optim import AdamW
@@ -22,6 +23,8 @@ from neural_forge.visualization.brain_probe import BrainProbe
 CHECKPOINT_DIR = Path("checkpoints")
 CHECKPOINT_DIR.mkdir(exist_ok=True)
 
+CLASS_NAMES = ["BUY", "HOLD", "SELL"]
+
 
 class Trainer:
     def __init__(
@@ -33,10 +36,10 @@ class Trainer:
         lr:             float = 3e-4,
         epochs:         int   = 30,
         device:         str   = "auto",
-        probe_every:    int   = 10,           # emit brain snapshot every N batches
+        probe_every:    int   = 10,
         on_epoch_end:   Optional[Callable] = None,
         on_batch_end:   Optional[Callable] = None,
-        on_brain_state: Optional[Callable] = None,  # callback(snapshot_dict)
+        on_brain_state: Optional[Callable] = None,
     ):
         if device == "auto":
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -52,10 +55,8 @@ class Trainer:
         self.on_batch_end   = on_batch_end
         self.on_brain_state = on_brain_state
 
-        # Attach brain probe
         self.probe = BrainProbe(self.model)
 
-        # Loss
         if class_weights is not None:
             class_weights = class_weights.to(self.device)
         self.criterion = nn.CrossEntropyLoss(weight=class_weights)
@@ -148,9 +149,11 @@ class Trainer:
             total      += y.size(0)
             total_loss += loss.item() * y.size(0)
 
-            # Signal probabilities for live display
             with torch.no_grad():
                 probs = torch.softmax(logits, dim=-1).mean(dim=0).cpu().tolist()
+                # Pad to 3 if model only sees 2 classes in this batch
+                while len(probs) < 3:
+                    probs.append(0.0)
 
             batch_metrics = {
                 "epoch":      epoch,
@@ -167,7 +170,6 @@ class Trainer:
             if self.on_batch_end:
                 self.on_batch_end(batch_metrics)
 
-            # Emit brain activation snapshot every N batches
             if self.on_brain_state and batch_idx % self.probe_every == 0:
                 snap = self.probe.snapshot(attn_weights=attn)
                 snap["epoch"] = epoch
@@ -235,10 +237,29 @@ class Trainer:
         labels = torch.cat(all_labels).numpy()
 
         from sklearn.metrics import classification_report, confusion_matrix
+
+        # Determine which classes actually appear (guards against small datasets)
+        present_labels = sorted(set(labels.tolist()) | set(preds.tolist()))
+        present_names  = [CLASS_NAMES[i] for i in present_labels if i < len(CLASS_NAMES)]
+
         report = classification_report(
             labels, preds,
-            target_names=["BUY", "HOLD", "SELL"],
+            labels=present_labels,
+            target_names=present_names,
             output_dict=True,
+            zero_division=0,
         )
-        cm = confusion_matrix(labels, preds)
-        return report, cm
+
+        # Always return a full 3x3 confusion matrix (missing classes = 0 rows/cols)
+        cm_raw = confusion_matrix(labels, preds, labels=present_labels)
+        cm_full = np.zeros((3, 3), dtype=int)
+        for i, li in enumerate(present_labels):
+            for j, lj in enumerate(present_labels):
+                cm_full[li][lj] = cm_raw[i][j]
+
+        # Ensure all 3 class keys exist in report for the UI
+        for i, name in enumerate(CLASS_NAMES):
+            if name not in report:
+                report[name] = {"precision": 0.0, "recall": 0.0, "f1-score": 0.0, "support": 0}
+
+        return report, cm_full
