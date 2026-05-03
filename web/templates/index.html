@@ -122,6 +122,36 @@ header h1{font-size:16px;font-weight:700;letter-spacing:.5px;}
 .export-card h3{font-size:13px;font-weight:700;margin-bottom:4px;}
 .export-card p{font-size:12px;color:var(--muted);margin-bottom:16px;}
 .export-result{margin-top:12px;padding:10px;background:var(--bg);border-radius:6px;font-family:monospace;font-size:12px;color:var(--green);border:1px solid var(--border);min-height:40px;}
+
+/* ── Tooltips ────────────────────────────────────── */
+[data-tip]{position:relative;cursor:help;}
+[data-tip]::after{
+  content:attr(data-tip);
+  position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);
+  background:#1a2540;color:#dde4f0;font-size:10px;font-weight:400;
+  padding:5px 9px;border-radius:5px;border:1px solid #2a3560;
+  white-space:pre-line;text-align:left;min-width:160px;max-width:260px;
+  pointer-events:none;opacity:0;transition:opacity .15s;z-index:999;
+  line-height:1.4;
+}
+[data-tip]:hover::after{opacity:1;}
+/* inline info icon */
+.info-icon{display:inline-block;width:13px;height:13px;border-radius:50%;
+  background:#1a2540;border:1px solid #2a3560;color:#4a5a7a;
+  font-size:9px;font-weight:700;text-align:center;line-height:12px;
+  cursor:help;margin-left:4px;flex-shrink:0;vertical-align:middle;}
+/* section description text */
+.section-desc{font-size:10px;color:#4a5a7a;margin-bottom:6px;line-height:1.4;}
+/* stat description */
+.stat .d{font-size:9px;color:#4a5a7a;margin-top:1px;line-height:1.3;}
+/* legend strip */
+.legend-strip{display:flex;gap:10px;margin-top:4px;flex-wrap:wrap;}
+.legend-item{display:flex;align-items:center;gap:4px;font-size:9px;color:#4a5a7a;}
+.legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+/* epoch progress bar */
+.epoch-bar-wrap{background:var(--bg);border-radius:3px;height:4px;margin-top:3px;overflow:hidden;}
+.epoch-bar{height:100%;border-radius:3px;background:var(--accent);width:0%;transition:width .4s;}
+
 </style>
 </head>
 <body>
@@ -189,17 +219,72 @@ header h1{font-size:16px;font-weight:700;letter-spacing:.5px;}
   <!-- Main -->
   <main class="train-main">
     <div class="stats">
-      <div class="stat"><div class="l">Batch Loss</div><div class="v" id="s-bloss" style="color:var(--yellow)">&#8212;</div></div>
-      <div class="stat"><div class="l">Train Loss</div><div class="v" id="s-tloss">&#8212;</div></div>
-      <div class="stat"><div class="l">Val Loss</div>  <div class="v" id="s-vloss">&#8212;</div></div>
-      <div class="stat"><div class="l">Train Acc</div> <div class="v" id="s-tacc" style="color:var(--green)">&#8212;</div></div>
-      <div class="stat"><div class="l">Val Acc</div>   <div class="v" id="s-vacc" style="color:var(--purple)">&#8212;</div></div>
+      <div class="stat" data-tip="Loss for the current mini-batch.&#10;High early, drops as training progresses.&#10;Spiky = learning rate too high.">
+        <div class="l">Batch Loss</div>
+        <div class="v" id="s-bloss" style="color:var(--yellow)">&#8212;</div>
+        <div class="d">current mini-batch</div>
+      </div>
+      <div class="stat" data-tip="Average loss across all training batches&#10;for the completed epoch. Lower = better fit.&#10;Cross-entropy: 0 is perfect, ~1.1 is random (3-class).">
+        <div class="l">Train Loss</div>
+        <div class="v" id="s-tloss">&#8212;</div>
+        <div class="d">avg over epoch</div>
+      </div>
+      <div class="stat" data-tip="Loss on the validation set (unseen data).&#10;Should track Train Loss — if it diverges upward&#10;the model is overfitting.">
+        <div class="l">Val Loss</div>
+        <div class="v" id="s-vloss">&#8212;</div>
+        <div class="d">unseen data</div>
+      </div>
+      <div class="stat" data-tip="% of training samples correctly classified&#10;as BUY / HOLD / SELL. Expect 33% at epoch 1&#10;(random chance), rising to 50-70% typically.">
+        <div class="l">Train Acc</div>
+        <div class="v" id="s-tacc" style="color:var(--green)">&#8212;</div>
+        <div class="d">on training data</div>
+      </div>
+      <div class="stat" data-tip="% correct on the validation set. This is&#10;the real performance metric — train acc can&#10;overfit; val acc shows true generalization.">
+        <div class="l">Val Acc</div>
+        <div class="v" id="s-vacc" style="color:var(--purple)">&#8212;</div>
+        <div class="d">true performance ★</div>
+      </div>
     </div>
     <div class="charts">
-      <div class="chart-card"><h3>Loss Curve</h3>         <div id="ch-loss" style="flex:1"></div></div>
-      <div class="chart-card"><h3>Accuracy</h3>           <div id="ch-acc"  style="flex:1"></div></div>
-      <div class="chart-card"><h3>Learning Rate</h3>      <div id="ch-lr"   style="flex:1"></div></div>
-      <div class="chart-card"><h3>Confusion Matrix</h3>   <div id="ch-cm"   style="flex:1"></div></div>
+      <div class="chart-card">
+  <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-bottom:4px;">
+    <h3 style="margin:0">Loss Curve</h3>
+    <span class="info-icon" data-tip="Cross-entropy loss per epoch.&#10;&#10;Blue = training data&#10;Orange dashed = validation data&#10;&#10;Goal: both lines fall together.&#10;If val rises while train falls = overfitting.">?</span>
+  </div>
+  <div class="legend-strip">
+    <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>Train</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f97316;border:1px dashed #f97316"></div>Val</div>
+  </div>
+  <div id="ch-loss" style="flex:1"></div>
+</div>
+      <div class="chart-card">
+  <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-bottom:4px;">
+    <h3 style="margin:0">Accuracy</h3>
+    <span class="info-icon" data-tip="Fraction of correct BUY/HOLD/SELL predictions.&#10;&#10;33% = random baseline (3 classes)&#10;50%+ = learning something useful&#10;60%+ = strong signal&#10;&#10;Green = train, Purple dashed = val">?</span>
+  </div>
+  <div class="legend-strip">
+    <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div>Train</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#a78bfa;border:1px dashed #a78bfa"></div>Val</div>
+    <div class="legend-item" style="color:#4a5a7a;font-style:italic">33% = random</div>
+  </div>
+  <div id="ch-acc" style="flex:1"></div>
+</div>
+      <div class="chart-card">
+  <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-bottom:4px;">
+    <h3 style="margin:0">Learning Rate</h3>
+    <span class="info-icon" data-tip="OneCycleLR schedule: LR ramps up for the&#10;first 10% of training then anneals down.&#10;&#10;High LR = fast but unstable learning&#10;Low LR = fine-tuning, slower but stable&#10;&#10;The peak is max_lr = lr × 10.">?</span>
+  </div>
+  <div class="section-desc">OneCycle: warm-up → peak → cosine anneal</div>
+  <div id="ch-lr" style="flex:1"></div>
+</div>
+      <div class="chart-card">
+  <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-bottom:4px;">
+    <h3 style="margin:0">Confusion Matrix</h3>
+    <span class="info-icon" data-tip="Shows what the model predicted vs reality&#10;on the held-out TEST set after training.&#10;&#10;Rows = actual label&#10;Cols = what model predicted&#10;&#10;Bright diagonal = correct predictions.&#10;Off-diagonal = mistakes.&#10;Appears when training completes.">?</span>
+  </div>
+  <div class="section-desc">Actual (rows) vs Predicted (cols) on test set</div>
+  <div id="ch-cm" style="flex:1"></div>
+</div>
     </div>
     <div class="log-strip">
       <h3>Console</h3>
@@ -211,6 +296,7 @@ header h1{font-size:16px;font-weight:700;letter-spacing:.5px;}
   <aside class="brain-panel">
     <div class="bp-section">
       <h3>Signal Output</h3>
+      <div class="section-desc">Live softmax probabilities from the model output head. The highest bar is the current prediction.</div>
       <div class="signal-bars">
         <div class="sig-row">
           <div class="sig-label" style="color:var(--green)">BUY</div>
@@ -231,20 +317,36 @@ header h1{font-size:16px;font-weight:700;letter-spacing:.5px;}
     </div>
     <div class="brain-scroll">
       <div class="bp-section">
-        <h3>Attention &#8212; Which Candles Matter</h3>
+        <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;">
+          <h3 style="margin:0">Attention — Which Candles Matter</h3>
+          <span class="info-icon" data-tip="Brighter blue = the model pays more attention&#10;to that time-step when making its decision.&#10;&#10;White borders = top 3 most attended candles.&#10;Left = oldest candle, Right = most recent.&#10;Dark = ignored, Bright = influential.">?</span>
+        </div>
+        <div class="section-desc">Brighter = more influential to the prediction</div>
         <canvas id="attn-canvas"></canvas>
         <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:2px;"><span>oldest</span><span>newest</span></div>
       </div>
       <div class="bp-section">
-        <h3>LSTM Hidden State (32 units x time)</h3>
+        <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;">
+          <h3 style="margin:0">LSTM Hidden State</h3>
+          <span class="info-icon" data-tip="Each row = one LSTM memory unit.&#10;Each column = one time step.&#10;&#10;Blue = strongly negative activation&#10;Red = strongly positive activation&#10;&#10;Patterns here represent what the LSTM&#10;'remembers' from the price sequence.">?</span>
+        </div>
+        <div class="section-desc">Memory units (rows) × time steps (cols) — blue→red = negative→positive</div>
         <canvas id="lstm-canvas"></canvas>
       </div>
       <div class="bp-section">
-        <h3>Classifier Neurons</h3>
+        <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;">
+          <h3 style="margin:0">Classifier Neurons</h3>
+          <span class="info-icon" data-tip="The MLP layers that convert LSTM output&#10;into BUY/HOLD/SELL probabilities.&#10;&#10;Green = positive activation (firing)&#10;Red = negative activation (inhibited)&#10;Bright = strong signal, Dark = weak">?</span>
+        </div>
+        <div class="section-desc">Green = active, Red = inhibited — live per batch</div>
         <div id="neuron-layers"></div>
       </div>
       <div class="bp-section" style="border-bottom:none">
-        <h3>Gradient Flow</h3>
+        <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;">
+          <h3 style="margin:0">Gradient Flow</h3>
+          <span class="info-icon" data-tip="Magnitude of gradients flowing through each&#10;classifier layer during backpropagation.&#10;&#10;Healthy = roughly equal bars across layers.&#10;Vanishing = bars near zero (model not learning)&#10;Exploding = one bar dominates (unstable)">?</span>
+        </div>
+        <div class="section-desc">Gradient magnitude per layer — equal bars = healthy flow</div>
         <div class="grad-bars" id="grad-bars"></div>
       </div>
     </div>
@@ -363,6 +465,7 @@ print(f"Signal: {label}")</pre>
 
 <script>
 const socket = io();
+let _totalEpochs = 0;
 
 // ── Tab switching ─────────────────────────────────────────
 function switchTab(name) {
@@ -408,6 +511,10 @@ socket.on('epoch_metrics', m => {
   Plotly.update('ch-acc', {x:[epochs,epochs],y:[tAcc, vAcc]});
   Plotly.update('ch-lr',  {x:[epochs.map((_,i)=>i+1)],y:[lrs]});
   document.getElementById('h-epoch').textContent = m.epoch;
+  if(_totalEpochs>0){
+    document.getElementById('h-epoch-total').textContent='/'+_totalEpochs;
+    document.getElementById('epoch-bar').style.width=(m.epoch/_totalEpochs*100).toFixed(1)+'%';
+  }
   document.getElementById('h-tacc').textContent  = pct(m.train_acc);
   document.getElementById('h-vacc').textContent  = pct(m.val_acc);
   document.getElementById('h-vloss').textContent = m.val_loss.toFixed(4);
