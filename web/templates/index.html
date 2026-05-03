@@ -3,449 +3,429 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>NeuralForge Studio</title>
+<title>NeuralForge Studio — CorticalBrain</title>
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
 <style>
-:root {
-  --bg:     #07090f;
-  --panel:  #0e1320;
-  --border: #1a2540;
-  --accent: #3b82f6;
-  --green:  #22c55e;
-  --red:    #ef4444;
-  --yellow: #f59e0b;
-  --purple: #a78bfa;
-  --cyan:   #22d3ee;
-  --text:   #dde4f0;
-  --muted:  #4a5a7a;
+:root{
+  --bg:#07090f;--panel:#0e1320;--border:#1a2540;
+  --accent:#3b82f6;--green:#22c55e;--red:#ef4444;
+  --yellow:#f59e0b;--purple:#a78bfa;--cyan:#22d3ee;
+  --orange:#f97316;--pink:#ec4899;
+  --text:#dde4f0;--muted:#4a5a7a;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
 
-/* ── Header ─────────────────────────────── */
-header{display:flex;align-items:center;gap:12px;padding:10px 20px;border-bottom:1px solid var(--border);background:var(--panel);flex-shrink:0;}
-header h1{font-size:16px;font-weight:700;letter-spacing:.5px;}
-.badge{padding:2px 9px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.5px;}
-.badge-idle    {background:#1a2540;color:var(--muted);}
+/* Header */
+header{display:flex;align-items:center;gap:12px;padding:8px 16px;border-bottom:1px solid var(--border);background:var(--panel);flex-shrink:0;}
+header h1{font-size:15px;font-weight:700;letter-spacing:.3px;}
+.brain-tag{font-size:10px;color:var(--purple);background:#1a1040;border:1px solid #3a2080;padding:2px 7px;border-radius:4px;font-weight:600;}
+.badge{padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.5px;}
+.badge-idle{background:#1a2540;color:var(--muted);}
 .badge-training{background:#1a3060;color:var(--accent);animation:pulse 1.5s infinite;}
-.badge-done    {background:#0f3020;color:var(--green);}
+.badge-done{background:#0f3020;color:var(--green);}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.5;}}
-.hdr-stats{margin-left:auto;display:flex;gap:24px;}
+.hdr-stats{margin-left:auto;display:flex;gap:20px;align-items:center;}
 .hdr-s{text-align:center;}
-.hdr-s .v{font-size:17px;font-weight:700;}
-.hdr-s .l{font-size:10px;color:var(--muted);text-transform:uppercase;}
+.hdr-s .v{font-size:16px;font-weight:700;}
+.hdr-s .l{font-size:9px;color:var(--muted);text-transform:uppercase;}
+.epoch-bar-wrap{background:var(--bg);border-radius:2px;height:3px;margin-top:2px;overflow:hidden;min-width:60px;}
+.epoch-bar{height:100%;border-radius:2px;background:var(--accent);width:0%;transition:width .4s;}
 
-/* ── Tabs ────────────────────────────────── */
+/* Dopamine meter */
+.dopa-wrap{display:flex;flex-direction:column;align-items:center;gap:2px;}
+.dopa-bar-wrap{width:60px;height:6px;background:var(--bg);border-radius:3px;overflow:hidden;border:1px solid var(--border);}
+.dopa-bar{height:100%;border-radius:3px;background:linear-gradient(90deg,#6366f1,#a78bfa,#ec4899);width:50%;transition:width .4s;}
+
+/* Tabs */
 .tabs{display:flex;border-bottom:1px solid var(--border);background:var(--panel);flex-shrink:0;}
-.tab{padding:9px 20px;font-size:12px;font-weight:600;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;transition:all .15s;}
+.tab{padding:8px 18px;font-size:12px;font-weight:600;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;transition:all .15s;}
 .tab:hover{color:var(--text);}
 .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
 
-/* ── Tab pages ───────────────────────────── */
+/* Tab pages */
 .tab-page{display:none;flex:1;overflow:hidden;}
 .tab-page.active{display:flex;}
 
-/* ── Shared layout ───────────────────────── */
-.layout{display:grid;grid-template-columns:240px 1fr 300px;flex:1;overflow:hidden;}
-.sidebar{background:var(--panel);border-right:1px solid var(--border);padding:14px 12px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;}
-.sidebar h2{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:5px;}
-.field{display:flex;flex-direction:column;gap:3px;margin-bottom:5px;}
-.field label{font-size:11px;color:var(--muted);}
-.field input,.field select{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;font-size:12px;width:100%;}
+/* Train tab layout */
+.train-layout{display:grid;grid-template-columns:220px 1fr 320px;flex:1;overflow:hidden;}
+
+/* Sidebar */
+.sidebar{background:var(--panel);border-right:1px solid var(--border);padding:12px 10px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;}
+.sidebar h2{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:3px;margin-top:4px;}
+.field{display:flex;flex-direction:column;gap:2px;margin-bottom:4px;}
+.field label{font-size:10px;color:var(--muted);}
+.field input,.field select{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:4px 7px;border-radius:4px;font-size:11px;width:100%;}
 .field input:focus,.field select:focus{outline:none;border-color:var(--accent);}
-.btn{padding:8px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:700;width:100%;margin-top:4px;transition:opacity .15s;}
+.btn{padding:7px;border-radius:5px;border:none;cursor:pointer;font-size:11px;font-weight:700;width:100%;margin-top:3px;transition:opacity .15s;}
 .btn:hover{opacity:.8;}
 .btn-primary{background:var(--accent);color:#fff;}
-.btn-danger {background:#2a1020;color:var(--red);border:1px solid var(--red);}
-.btn-export {background:#1a2a40;color:var(--cyan);border:1px solid var(--cyan);}
+.btn-danger{background:#2a1020;color:var(--red);border:1px solid var(--red);}
+.btn-export{background:#1a2a40;color:var(--cyan);border:1px solid var(--cyan);}
+.model-select-row{display:flex;gap:4px;margin-bottom:6px;}
+.model-btn{flex:1;padding:5px 4px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--muted);font-size:10px;font-weight:600;cursor:pointer;text-align:center;transition:all .15s;}
+.model-btn.active{background:#1a1040;border-color:#a78bfa;color:#a78bfa;}
 
-/* ── Train tab main ──────────────────────── */
-.train-main{display:grid;grid-template-rows:auto 1fr auto;overflow:hidden;flex:1;}
+/* Train main area */
+.train-main{display:grid;grid-template-rows:auto 1fr 80px;overflow:hidden;flex:1;}
 .stats{display:flex;border-bottom:1px solid var(--border);}
-.stat{flex:1;padding:10px 14px;border-right:1px solid var(--border);}
+.stat{flex:1;padding:8px 12px;border-right:1px solid var(--border);cursor:help;}
 .stat:last-child{border-right:none;}
-.stat .v{font-size:20px;font-weight:700;margin-top:2px;}
-.stat .l{font-size:10px;color:var(--muted);text-transform:uppercase;}
+.stat .v{font-size:18px;font-weight:700;margin-top:1px;}
+.stat .l{font-size:9px;color:var(--muted);text-transform:uppercase;}
+.stat .d{font-size:9px;color:#3a4a6a;margin-top:1px;}
 .charts{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:1px;background:var(--border);overflow:hidden;}
-.chart-card{background:var(--panel);padding:12px;display:flex;flex-direction:column;}
-.chart-card h3{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:6px;flex-shrink:0;}
-.log-strip{border-top:1px solid var(--border);background:var(--panel);padding:8px 12px;flex-shrink:0;}
-.log-strip h3{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:4px;}
-#log-out{height:70px;overflow-y:auto;font-family:monospace;font-size:11px;color:var(--green);background:var(--bg);border-radius:4px;padding:6px;border:1px solid var(--border);}
+.chart-card{background:var(--panel);padding:10px;display:flex;flex-direction:column;overflow:hidden;}
+.chart-card h3{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:4px;flex-shrink:0;}
+.chart-desc{font-size:9px;color:#3a4a6a;margin-bottom:4px;flex-shrink:0;}
+.legend-strip{display:flex;gap:8px;margin-bottom:4px;flex-wrap:wrap;flex-shrink:0;}
+.legend-item{display:flex;align-items:center;gap:3px;font-size:9px;color:#4a5a7a;}
+.legend-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.log-strip{border-top:1px solid var(--border);background:var(--panel);padding:6px 10px;overflow:hidden;display:flex;flex-direction:column;}
+.log-strip h3{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:3px;flex-shrink:0;}
+#log-out{flex:1;overflow-y:auto;font-family:monospace;font-size:10px;color:var(--green);background:var(--bg);border-radius:3px;padding:4px 6px;border:1px solid var(--border);}
 
-/* ── Brain panel ─────────────────────────── */
+/* Brain panel */
 .brain-panel{background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
-.bp-section{border-bottom:1px solid var(--border);padding:10px 12px;flex-shrink:0;}
-.bp-section h3{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px;}
-.signal-bars{display:flex;flex-direction:column;gap:6px;}
-.sig-row{display:flex;align-items:center;gap:8px;}
-.sig-label{width:34px;font-size:11px;font-weight:700;}
-.sig-bar-wrap{flex:1;background:var(--bg);border-radius:3px;height:14px;overflow:hidden;}
-.sig-bar{height:100%;border-radius:3px;transition:width .3s ease;}
-.sig-val{width:38px;text-align:right;font-size:11px;font-family:monospace;}
-.buy-bar {background:var(--green);}
+.brain-panel-title{padding:8px 12px;border-bottom:1px solid var(--border);font-size:10px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:.5px;flex-shrink:0;display:flex;align-items:center;gap:6px;}
+.brain-scroll{overflow-y:auto;flex:1;}
+.bp-section{border-bottom:1px solid var(--border);padding:8px 10px;}
+.bp-section h3{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:3px;display:flex;align-items:center;gap:4px;}
+.bp-desc{font-size:9px;color:#3a4a6a;margin-bottom:5px;line-height:1.3;}
+.info-icon{display:inline-flex;align-items:center;justify-content:center;width:12px;height:12px;border-radius:50%;background:#1a2540;border:1px solid #2a3560;color:#4a5a7a;font-size:8px;font-weight:700;cursor:help;flex-shrink:0;}
+[data-tip]{position:relative;}
+[data-tip]::after{content:attr(data-tip);position:absolute;bottom:calc(100%+5px);left:0;background:#1a2540;color:#dde4f0;font-size:10px;padding:5px 8px;border-radius:4px;border:1px solid #2a3560;white-space:pre-line;min-width:180px;max-width:240px;pointer-events:none;opacity:0;transition:opacity .15s;z-index:999;line-height:1.4;}
+[data-tip]:hover::after{opacity:1;}
+
+/* Signal bars */
+.signal-bars{display:flex;flex-direction:column;gap:5px;}
+.sig-row{display:flex;align-items:center;gap:6px;}
+.sig-label{width:32px;font-size:10px;font-weight:700;}
+.sig-bar-wrap{flex:1;background:var(--bg);border-radius:2px;height:12px;overflow:hidden;}
+.sig-bar{height:100%;border-radius:2px;transition:width .35s ease;}
+.sig-val{width:36px;text-align:right;font-size:10px;font-family:monospace;}
+.buy-bar{background:var(--green);}
 .hold-bar{background:var(--yellow);}
 .sell-bar{background:var(--red);}
-#attn-canvas{width:100%;height:50px;border-radius:4px;}
-#lstm-canvas {width:100%;height:80px;border-radius:4px;}
-.neuron-grid{display:flex;flex-wrap:wrap;gap:2px;}
-.neuron{width:12px;height:12px;border-radius:2px;transition:background .2s;}
-.grad-bars{display:flex;flex-direction:column;gap:4px;}
-.grad-row{display:flex;align-items:center;gap:6px;}
-.grad-label{font-size:10px;color:var(--muted);width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.grad-bar-wrap{flex:1;background:var(--bg);border-radius:2px;height:8px;}
+.sig-label-name{font-size:9px;color:var(--muted);}
+
+/* Column grid */
+.col-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;}
+.col-card{background:var(--bg);border-radius:4px;padding:5px;border:1px solid var(--border);}
+.col-card-title{font-size:8px;color:var(--muted);margin-bottom:3px;text-align:center;}
+.col-neurons{display:flex;flex-wrap:wrap;gap:1px;}
+.col-neuron{width:8px;height:8px;border-radius:1px;transition:background .25s;}
+.fire-rate-bar{height:2px;border-radius:1px;background:var(--purple);margin-top:3px;transition:width .3s;}
+
+/* Heatmap canvas */
+.heat-canvas{width:100%;border-radius:3px;image-rendering:pixelated;}
+
+/* Neuron row for PFC */
+.neuron-row{display:flex;flex-wrap:wrap;gap:2px;}
+.neuron{width:10px;height:10px;border-radius:2px;transition:background .2s;}
+
+/* Grad bars */
+.grad-bars{display:flex;flex-direction:column;gap:3px;}
+.grad-row{display:flex;align-items:center;gap:5px;}
+.grad-label{font-size:9px;color:var(--muted);width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.grad-bar-wrap{flex:1;background:var(--bg);border-radius:2px;height:6px;}
 .grad-bar{height:100%;border-radius:2px;background:var(--purple);transition:width .3s;}
-.brain-scroll{overflow-y:auto;flex:1;}
 
-/* ── System tab ──────────────────────────── */
-.system-page{flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:20px;}
-.sys-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
-.sys-card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:16px;}
-.sys-card h3{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:12px;}
-.sys-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);}
+/* Attention strip */
+#attn-canvas{width:100%;height:32px;border-radius:3px;}
+#thalamus-canvas{width:100%;height:24px;border-radius:3px;}
+
+/* System tab */
+.system-page{display:flex;flex-direction:column;gap:16px;padding:20px;overflow-y:auto;flex:1;}
+.sys-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:4px;}
+.sys-card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:14px;}
+.sys-card h3{font-size:11px;font-weight:700;color:var(--accent);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;}
+.sys-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid var(--border);}
 .sys-row:last-child{border-bottom:none;}
-.sys-key{font-size:12px;color:var(--muted);}
-.sys-val{font-size:12px;font-weight:600;font-family:monospace;}
-.module-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
-.mod-card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center;}
-.mod-icon{font-size:28px;margin-bottom:8px;}
-.mod-name{font-size:12px;font-weight:700;margin-bottom:4px;}
-.mod-desc{font-size:11px;color:var(--muted);}
-.mod-status{margin-top:8px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;display:inline-block;}
-.status-ok  {background:#0f3020;color:var(--green);}
-.status-warn{background:#2a1a00;color:var(--yellow);}
+.sys-key{font-size:11px;color:var(--muted);}
+.sys-val{font-size:11px;font-weight:600;}
+.module-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;}
+.mod-card{background:var(--panel);border:1px solid var(--border);border-radius:7px;padding:12px;display:flex;flex-direction:column;gap:6px;}
+.mod-icon{font-size:20px;}
+.mod-name{font-size:12px;font-weight:700;}
+.mod-desc{font-size:10px;color:var(--muted);line-height:1.3;}
+.mod-status{font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;width:fit-content;}
+.status-ok{background:#0f3020;color:var(--green);}
+.status-warn{background:#2a2010;color:var(--yellow);}
 
-/* ── Export tab ──────────────────────────── */
-.export-page{flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:20px;max-width:700px;}
-.export-card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:20px;}
-.export-card h3{font-size:13px;font-weight:700;margin-bottom:4px;}
-.export-card p{font-size:12px;color:var(--muted);margin-bottom:16px;}
-.export-result{margin-top:12px;padding:10px;background:var(--bg);border-radius:6px;font-family:monospace;font-size:12px;color:var(--green);border:1px solid var(--border);min-height:40px;}
-
-/* ── Tooltips ────────────────────────────────────── */
-[data-tip]{position:relative;cursor:help;}
-[data-tip]::after{
-  content:attr(data-tip);
-  position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);
-  background:#1a2540;color:#dde4f0;font-size:10px;font-weight:400;
-  padding:5px 9px;border-radius:5px;border:1px solid #2a3560;
-  white-space:pre-line;text-align:left;min-width:160px;max-width:260px;
-  pointer-events:none;opacity:0;transition:opacity .15s;z-index:999;
-  line-height:1.4;
-}
-[data-tip]:hover::after{opacity:1;}
-/* inline info icon */
-.info-icon{display:inline-block;width:13px;height:13px;border-radius:50%;
-  background:#1a2540;border:1px solid #2a3560;color:#4a5a7a;
-  font-size:9px;font-weight:700;text-align:center;line-height:12px;
-  cursor:help;margin-left:4px;flex-shrink:0;vertical-align:middle;}
-/* section description text */
-.section-desc{font-size:10px;color:#4a5a7a;margin-bottom:6px;line-height:1.4;}
-/* stat description */
-.stat .d{font-size:9px;color:#4a5a7a;margin-top:1px;line-height:1.3;}
-/* legend strip */
-.legend-strip{display:flex;gap:10px;margin-top:4px;flex-wrap:wrap;}
-.legend-item{display:flex;align-items:center;gap:4px;font-size:9px;color:#4a5a7a;}
-.legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-/* epoch progress bar */
-.epoch-bar-wrap{background:var(--bg);border-radius:3px;height:4px;margin-top:3px;overflow:hidden;}
-.epoch-bar{height:100%;border-radius:3px;background:var(--accent);width:0%;transition:width .4s;}
-
+/* Export tab */
+.export-page{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:20px;overflow-y:auto;flex:1;align-content:start;}
+.export-card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:10px;}
+.export-card h3{font-size:13px;font-weight:700;}
+.export-card p{font-size:11px;color:var(--muted);line-height:1.5;}
+.export-result{font-size:11px;font-family:monospace;padding:8px;background:var(--bg);border-radius:4px;border:1px solid var(--border);white-space:pre-wrap;}
 </style>
 </head>
 <body>
 
-<!-- ═══ Header ═══ -->
 <header>
-  <span style="font-size:18px">&#9889;</span>
-  <h1>NeuralForge Studio</h1>
-  <span id="status-badge" class="badge badge-idle">IDLE</span>
+  <h1>🧠 NeuralForge Studio</h1>
+  <span class="brain-tag">CorticalBrain</span>
+  <span class="badge badge-idle" id="status-badge">IDLE</span>
   <div class="hdr-stats">
-    <div class="hdr-s"><div class="v" id="h-epoch" style="color:var(--accent)">&#8212;</div><div class="l">Epoch</div></div>
-    <div class="hdr-s"><div class="v" id="h-tacc"  style="color:var(--green)">&#8212;</div><div class="l">Train Acc</div></div>
-    <div class="hdr-s"><div class="v" id="h-vacc"  style="color:var(--purple)">&#8212;</div><div class="l">Val Acc</div></div>
-    <div class="hdr-s"><div class="v" id="h-vloss" style="color:var(--yellow)">&#8212;</div><div class="l">Val Loss</div></div>
+    <div class="hdr-s">
+      <div class="v"><span id="h-epoch">0</span><span id="h-epoch-total" style="font-size:10px;color:var(--muted);font-weight:400">/—</span></div>
+      <div class="l">Epoch</div>
+      <div class="epoch-bar-wrap"><div class="epoch-bar" id="epoch-bar"></div></div>
+    </div>
+    <div class="hdr-s"><div class="v" id="h-vacc" style="color:var(--purple)">—</div><div class="l">Val Acc</div></div>
+    <div class="hdr-s"><div class="v" id="h-vloss">—</div><div class="l">Val Loss</div></div>
+    <div class="dopa-wrap" title="Dopaminergic neuromodulation level — confidence of the brain's prediction">
+      <div class="dopa-bar-wrap"><div class="dopa-bar" id="dopa-bar"></div></div>
+      <div class="l" style="font-size:9px;color:var(--muted)">Dopamine</div>
+    </div>
   </div>
 </header>
 
-<!-- ═══ Tabs ═══ -->
 <div class="tabs">
-  <div class="tab active" onclick="switchTab('train')">&#127881; Train</div>
-  <div class="tab"        onclick="switchTab('system')">&#128421; System</div>
-  <div class="tab"        onclick="switchTab('export')">&#128190; Export</div>
+  <div class="tab active" onclick="switchTab('train')">🧠 Train</div>
+  <div class="tab" onclick="switchTab('system')">⚙ System</div>
+  <div class="tab" onclick="switchTab('export')">💾 Export</div>
 </div>
 
-<!-- ════════════════════════════════════════════
-     TAB 1 — TRAIN
-════════════════════════════════════════════ -->
+<!-- TAB: TRAIN -->
 <div id="tab-train" class="tab-page active">
-<div class="layout">
+<div class="train-layout">
 
   <!-- Sidebar -->
   <aside class="sidebar">
     <div>
+      <h2>Model Architecture</h2>
+      <div class="model-select-row">
+        <div class="model-btn active" id="btn-cortical" onclick="selectModel('cortical')">🧠 Cortical</div>
+        <div class="model-btn" id="btn-lstm" onclick="selectModel('lstm')">📈 LSTM</div>
+      </div>
+    </div>
+
+    <div>
       <h2>Data</h2>
-      <div class="field"><label>Ticker</label><input id="c-ticker" value="SPY"/></div>
+      <div class="field"><label>Ticker</label><input id="cfg-ticker" value="SPY"/></div>
       <div class="field"><label>Period</label>
-        <select id="c-period">
-          <option value="1y">1 year</option>
-          <option value="2y">2 years</option>
-          <option value="5y" selected>5 years</option>
-          <option value="10y">10 years</option>
-          <option value="max">Max</option>
+        <select id="cfg-period">
+          <option value="1y">1 Year</option>
+          <option value="2y">2 Years</option>
+          <option value="5y" selected>5 Years</option>
+          <option value="10y">10 Years</option>
         </select>
       </div>
-      <div class="field"><label>Window (candles)</label><input id="c-window" type="number" value="30"/></div>
-      <div class="field"><label>Forward bars</label><input id="c-forward" type="number" value="5"/></div>
-      <div class="field"><label>Signal threshold</label><input id="c-thresh" type="number" step="0.001" value="0.015"/></div>
+      <div class="field"><label>Window (candles)</label><input id="cfg-window" type="number" value="30"/></div>
+      <div class="field"><label>Forward days (label)</label><input id="cfg-forward" type="number" value="5"/></div>
+      <div class="field"><label>Signal threshold %</label><input id="cfg-thresh" type="number" step="0.001" value="0.015"/></div>
     </div>
-    <div>
-      <h2>Model</h2>
-      <div class="field"><label>Hidden units</label><input id="c-hidden" type="number" value="128"/></div>
-      <div class="field"><label>LSTM layers</label><input id="c-layers" type="number" value="2"/></div>
+
+    <div id="cortical-params">
+      <h2>Cortical Params</h2>
+      <div class="field"><label>Column dim</label><input id="cfg-col-dim" type="number" value="64"/></div>
+      <div class="field"><label>Memory dim</label><input id="cfg-mem-dim" type="number" value="128"/></div>
+      <div class="field"><label>Sparsity k</label><input id="cfg-sparsity" type="number" value="8"/></div>
     </div>
+    <div id="lstm-params" style="display:none">
+      <h2>LSTM Params</h2>
+      <div class="field"><label>Hidden units</label><input id="cfg-hidden" type="number" value="128"/></div>
+      <div class="field"><label>Layers</label><input id="cfg-layers" type="number" value="2"/></div>
+    </div>
+
     <div>
       <h2>Training</h2>
-      <div class="field"><label>Epochs</label><input id="c-epochs" type="number" value="30"/></div>
-      <div class="field"><label>Learning rate</label><input id="c-lr" type="number" step="0.0001" value="0.0003"/></div>
-      <div class="field"><label>Batch size</label><input id="c-batch" type="number" value="64"/></div>
-      <div class="field"><label>Brain probe every N batches</label><input id="c-probe" type="number" value="5"/></div>
+      <div class="field"><label>Epochs</label><input id="cfg-epochs" type="number" value="30"/></div>
+      <div class="field"><label>Learning rate</label><input id="cfg-lr" type="number" step="0.0001" value="0.0003"/></div>
+      <div class="field"><label>Batch size</label><input id="cfg-batch" type="number" value="64"/></div>
+      <div class="field"><label>Brain snapshot every N batches</label><input id="cfg-probe" type="number" value="5"/></div>
     </div>
-    <button class="btn btn-primary" onclick="startTraining()">&#9654; Train Brain</button>
-    <button class="btn btn-danger"  onclick="stopTraining()">&#9632; Stop</button>
+
+    <button class="btn btn-primary" onclick="startTraining()">▶ Train</button>
+    <button class="btn btn-danger"  onclick="stopTraining()">■ Stop</button>
   </aside>
 
-  <!-- Main -->
+  <!-- Main charts -->
   <main class="train-main">
     <div class="stats">
-      <div class="stat" data-tip="Loss for the current mini-batch.&#10;High early, drops as training progresses.&#10;Spiky = learning rate too high.">
-        <div class="l">Batch Loss</div>
-        <div class="v" id="s-bloss" style="color:var(--yellow)">&#8212;</div>
-        <div class="d">current mini-batch</div>
+      <div class="stat" title="Loss for the current mini-batch. Cross-entropy: ~1.1 is random (3-class), lower is better.">
+        <div class="l">Batch Loss</div><div class="v" id="s-bloss" style="color:var(--yellow)">—</div><div class="d">current batch</div>
       </div>
-      <div class="stat" data-tip="Average loss across all training batches&#10;for the completed epoch. Lower = better fit.&#10;Cross-entropy: 0 is perfect, ~1.1 is random (3-class).">
-        <div class="l">Train Loss</div>
-        <div class="v" id="s-tloss">&#8212;</div>
-        <div class="d">avg over epoch</div>
+      <div class="stat" title="Average cross-entropy loss over all training batches this epoch.">
+        <div class="l">Train Loss</div><div class="v" id="s-tloss">—</div><div class="d">epoch average</div>
       </div>
-      <div class="stat" data-tip="Loss on the validation set (unseen data).&#10;Should track Train Loss — if it diverges upward&#10;the model is overfitting.">
-        <div class="l">Val Loss</div>
-        <div class="v" id="s-vloss">&#8212;</div>
-        <div class="d">unseen data</div>
+      <div class="stat" title="Loss on validation set (unseen data). If this rises while train falls = overfitting.">
+        <div class="l">Val Loss</div><div class="v" id="s-vloss">—</div><div class="d">unseen data</div>
       </div>
-      <div class="stat" data-tip="% of training samples correctly classified&#10;as BUY / HOLD / SELL. Expect 33% at epoch 1&#10;(random chance), rising to 50-70% typically.">
-        <div class="l">Train Acc</div>
-        <div class="v" id="s-tacc" style="color:var(--green)">&#8212;</div>
-        <div class="d">on training data</div>
+      <div class="stat" title="% of training samples correctly classified. 33% = random baseline for 3 classes.">
+        <div class="l">Train Acc</div><div class="v" id="s-tacc" style="color:var(--green)">—</div><div class="d">on train set</div>
       </div>
-      <div class="stat" data-tip="% correct on the validation set. This is&#10;the real performance metric — train acc can&#10;overfit; val acc shows true generalization.">
-        <div class="l">Val Acc</div>
-        <div class="v" id="s-vacc" style="color:var(--purple)">&#8212;</div>
-        <div class="d">true performance ★</div>
+      <div class="stat" title="Real performance metric. Val acc on held-out data shows true generalization.">
+        <div class="l">Val Acc ★</div><div class="v" id="s-vacc" style="color:var(--purple)">—</div><div class="d">true performance</div>
       </div>
     </div>
+
     <div class="charts">
       <div class="chart-card">
-  <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-bottom:4px;">
-    <h3 style="margin:0">Loss Curve</h3>
-    <span class="info-icon" data-tip="Cross-entropy loss per epoch.&#10;&#10;Blue = training data&#10;Orange dashed = validation data&#10;&#10;Goal: both lines fall together.&#10;If val rises while train falls = overfitting.">?</span>
-  </div>
-  <div class="legend-strip">
-    <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>Train</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#f97316;border:1px dashed #f97316"></div>Val</div>
-  </div>
-  <div id="ch-loss" style="flex:1"></div>
-</div>
+        <h3>Loss Curve</h3>
+        <div class="legend-strip">
+          <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>Train</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div>Val — diverging = overfitting</div>
+        </div>
+        <div id="ch-loss" style="flex:1;min-height:0"></div>
+      </div>
       <div class="chart-card">
-  <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-bottom:4px;">
-    <h3 style="margin:0">Accuracy</h3>
-    <span class="info-icon" data-tip="Fraction of correct BUY/HOLD/SELL predictions.&#10;&#10;33% = random baseline (3 classes)&#10;50%+ = learning something useful&#10;60%+ = strong signal&#10;&#10;Green = train, Purple dashed = val">?</span>
-  </div>
-  <div class="legend-strip">
-    <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div>Train</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#a78bfa;border:1px dashed #a78bfa"></div>Val</div>
-    <div class="legend-item" style="color:#4a5a7a;font-style:italic">33% = random</div>
-  </div>
-  <div id="ch-acc" style="flex:1"></div>
-</div>
+        <h3>Accuracy</h3>
+        <div class="legend-strip">
+          <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div>Train</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div>Val</div>
+          <div class="legend-item" style="color:#3a4a6a;font-style:italic">33% = random chance</div>
+        </div>
+        <div id="ch-acc" style="flex:1;min-height:0"></div>
+      </div>
       <div class="chart-card">
-  <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-bottom:4px;">
-    <h3 style="margin:0">Learning Rate</h3>
-    <span class="info-icon" data-tip="OneCycleLR schedule: LR ramps up for the&#10;first 10% of training then anneals down.&#10;&#10;High LR = fast but unstable learning&#10;Low LR = fine-tuning, slower but stable&#10;&#10;The peak is max_lr = lr × 10.">?</span>
-  </div>
-  <div class="section-desc">OneCycle: warm-up → peak → cosine anneal</div>
-  <div id="ch-lr" style="flex:1"></div>
-</div>
+        <h3>Learning Rate <span style="font-size:9px;color:var(--muted);font-weight:400">(OneCycleLR)</span></h3>
+        <div class="chart-desc">Warm-up → peak → cosine anneal. High LR = fast learning, low LR = fine-tuning.</div>
+        <div id="ch-lr" style="flex:1;min-height:0"></div>
+      </div>
       <div class="chart-card">
-  <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-bottom:4px;">
-    <h3 style="margin:0">Confusion Matrix</h3>
-    <span class="info-icon" data-tip="Shows what the model predicted vs reality&#10;on the held-out TEST set after training.&#10;&#10;Rows = actual label&#10;Cols = what model predicted&#10;&#10;Bright diagonal = correct predictions.&#10;Off-diagonal = mistakes.&#10;Appears when training completes.">?</span>
-  </div>
-  <div class="section-desc">Actual (rows) vs Predicted (cols) on test set</div>
-  <div id="ch-cm" style="flex:1"></div>
-</div>
+        <h3>Confusion Matrix <span style="font-size:9px;color:var(--muted);font-weight:400">(test set, after training)</span></h3>
+        <div class="chart-desc">Rows = actual signal, Cols = predicted. Bright diagonal = correct. Off-diagonal = mistakes.</div>
+        <div id="ch-cm" style="flex:1;min-height:0"></div>
+      </div>
     </div>
+
     <div class="log-strip">
       <h3>Console</h3>
       <div id="log-out"></div>
     </div>
   </main>
 
-  <!-- Brain panel -->
+  <!-- Brain visualization panel -->
   <aside class="brain-panel">
-    <div class="bp-section">
-      <h3>Signal Output</h3>
-      <div class="section-desc">Live softmax probabilities from the model output head. The highest bar is the current prediction.</div>
-      <div class="signal-bars">
-        <div class="sig-row">
-          <div class="sig-label" style="color:var(--green)">BUY</div>
-          <div class="sig-bar-wrap"><div class="sig-bar buy-bar"  id="bar-buy"  style="width:33%"></div></div>
-          <div class="sig-val" id="val-buy">33%</div>
-        </div>
-        <div class="sig-row">
-          <div class="sig-label" style="color:var(--yellow)">HOLD</div>
-          <div class="sig-bar-wrap"><div class="sig-bar hold-bar" id="bar-hold" style="width:34%"></div></div>
-          <div class="sig-val" id="val-hold">34%</div>
-        </div>
-        <div class="sig-row">
-          <div class="sig-label" style="color:var(--red)">SELL</div>
-          <div class="sig-bar-wrap"><div class="sig-bar sell-bar" id="bar-sell" style="width:33%"></div></div>
-          <div class="sig-val" id="val-sell">33%</div>
-        </div>
-      </div>
+    <div class="brain-panel-title">
+      <span>🧠</span> Live Brain Activity
     </div>
     <div class="brain-scroll">
+
+      <!-- Signal output -->
       <div class="bp-section">
-        <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;">
-          <h3 style="margin:0">Attention — Which Candles Matter</h3>
-          <span class="info-icon" data-tip="Brighter blue = the model pays more attention&#10;to that time-step when making its decision.&#10;&#10;White borders = top 3 most attended candles.&#10;Left = oldest candle, Right = most recent.&#10;Dark = ignored, Bright = influential.">?</span>
+        <h3>Signal Output <span class="info-icon" data-tip="Softmax probabilities from the decision layer.&#10;The highest bar = current prediction.&#10;These update every batch during training.">?</span></h3>
+        <div class="bp-desc">Live BUY/HOLD/SELL probabilities from the prefrontal decision layer</div>
+        <div class="signal-bars">
+          <div class="sig-row">
+            <div class="sig-label" style="color:var(--green)">BUY</div>
+            <div class="sig-bar-wrap"><div class="sig-bar buy-bar" id="bar-buy" style="width:33%"></div></div>
+            <div class="sig-val" id="val-buy">33%</div>
+          </div>
+          <div class="sig-row">
+            <div class="sig-label" style="color:var(--yellow)">HOLD</div>
+            <div class="sig-bar-wrap"><div class="sig-bar hold-bar" id="bar-hold" style="width:34%"></div></div>
+            <div class="sig-val" id="val-hold">34%</div>
+          </div>
+          <div class="sig-row">
+            <div class="sig-label" style="color:var(--red)">SELL</div>
+            <div class="sig-bar-wrap"><div class="sig-bar sell-bar" id="bar-sell" style="width:33%"></div></div>
+            <div class="sig-val" id="val-sell">33%</div>
+          </div>
         </div>
-        <div class="section-desc">Brighter = more influential to the prediction</div>
+      </div>
+
+      <!-- Thalamic gate -->
+      <div class="bp-section">
+        <h3>Thalamic Gate <span class="info-icon" data-tip="The thalamus filters & routes raw price data&#10;before it reaches the cortex. Bright = high activity.&#10;Like LGN/VPM relay nuclei in the biological brain.&#10;Left=oldest candle, Right=most recent.">?</span></h3>
+        <div class="bp-desc">Sensory relay — filters which market signals reach the cortex</div>
+        <canvas id="thalamus-canvas"></canvas>
+        <div style="display:flex;justify-content:space-between;font-size:8px;color:var(--muted);margin-top:1px;"><span>oldest</span><span>newest</span></div>
+      </div>
+
+      <!-- Hippocampal attention -->
+      <div class="bp-section">
+        <h3>Hippocampal Memory <span class="info-icon" data-tip="Which candles the hippocampus consolidated&#10;into the episodic memory trace.&#10;White borders = top 3 most attended.&#10;Like CA1 place cells mapping a cognitive timeline.">?</span></h3>
+        <div class="bp-desc">Temporal attention — which candles the brain remembers most</div>
         <canvas id="attn-canvas"></canvas>
-        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:2px;"><span>oldest</span><span>newest</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:8px;color:var(--muted);margin-top:1px;"><span>oldest</span><span>newest</span></div>
       </div>
+
+      <!-- Cortical columns -->
       <div class="bp-section">
-        <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;">
-          <h3 style="margin:0">LSTM Hidden State</h3>
-          <span class="info-icon" data-tip="Each row = one LSTM memory unit.&#10;Each column = one time step.&#10;&#10;Blue = strongly negative activation&#10;Red = strongly positive activation&#10;&#10;Patterns here represent what the LSTM&#10;'remembers' from the price sequence.">?</span>
-        </div>
-        <div class="section-desc">Memory units (rows) × time steps (cols) — blue→red = negative→positive</div>
-        <canvas id="lstm-canvas"></canvas>
+        <h3>Cortical Columns <span class="info-icon" data-tip="6 parallel cortical mini-columns, each specializing&#10;in a different aspect of the price sequence.&#10;Green=active neuron, Dark=inhibited (sparse coding).&#10;Bar below = mean firing rate of that column.&#10;Like L2/3 pyramidal neurons in visual cortex.">?</span></h3>
+        <div class="bp-desc">6 parallel columns — sparse coding, lateral inhibition per column</div>
+        <div class="col-grid" id="col-grid"></div>
       </div>
+
+      <!-- Hippocampal CA3 heatmap -->
       <div class="bp-section">
-        <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;">
-          <h3 style="margin:0">Classifier Neurons</h3>
-          <span class="info-icon" data-tip="The MLP layers that convert LSTM output&#10;into BUY/HOLD/SELL probabilities.&#10;&#10;Green = positive activation (firing)&#10;Red = negative activation (inhibited)&#10;Bright = strong signal, Dark = weak">?</span>
-        </div>
-        <div class="section-desc">Green = active, Red = inhibited — live per batch</div>
-        <div id="neuron-layers"></div>
+        <h3>CA3 Pattern Memory <span class="info-icon" data-tip="Hippocampal CA3 self-attention output.&#10;Rows = memory units, Cols = time steps.&#10;Blue=negative, Red=positive activation.&#10;Patterns here = what the brain 'remembers'&#10;about the sequence so far.">?</span></h3>
+        <div class="bp-desc">Memory units × time steps — blue→red = negative→positive</div>
+        <canvas id="hippo-canvas" class="heat-canvas" style="height:48px"></canvas>
       </div>
+
+      <!-- Prefrontal neurons -->
+      <div class="bp-section">
+        <h3>Prefrontal Cortex <span class="info-icon" data-tip="Dendritic neurons integrating hippocampal memory&#10;(proximal dendrites) + cortical context (apical).&#10;Green=positive activation, Red=inhibited.&#10;These neurons make the final BUY/HOLD/SELL call.">?</span></h3>
+        <div class="bp-desc">Executive layer — dendritic neurons integrating memory + cortex</div>
+        <div class="neuron-row" id="pfc-neurons"></div>
+      </div>
+
+      <!-- Dopamine -->
       <div class="bp-section" style="border-bottom:none">
-        <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;">
-          <h3 style="margin:0">Gradient Flow</h3>
-          <span class="info-icon" data-tip="Magnitude of gradients flowing through each&#10;classifier layer during backpropagation.&#10;&#10;Healthy = roughly equal bars across layers.&#10;Vanishing = bars near zero (model not learning)&#10;Exploding = one bar dominates (unstable)">?</span>
+        <h3>Dopaminergic Modulation <span class="info-icon" data-tip="VTA/SNc-like dopamine signal — modulates how&#10;confidently the brain gates its own predictions.&#10;High dopamine = confident, high-gain state.&#10;Low dopamine = cautious, conservative output.">?</span></h3>
+        <div class="bp-desc">Neuromodulatory gain — scales the prefrontal output confidence</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+          <div style="flex:1;background:var(--bg);border-radius:3px;height:10px;overflow:hidden;border:1px solid var(--border);">
+            <div id="dopa-bar-full" style="height:100%;border-radius:3px;background:linear-gradient(90deg,#6366f1,#a78bfa,#ec4899);width:50%;transition:width .4s;"></div>
+          </div>
+          <div id="dopa-val" style="font-size:11px;font-family:monospace;color:var(--purple);width:36px;text-align:right;">—</div>
         </div>
-        <div class="section-desc">Gradient magnitude per layer — equal bars = healthy flow</div>
-        <div class="grad-bars" id="grad-bars"></div>
+        <div style="display:flex;justify-content:space-between;font-size:8px;color:var(--muted);margin-top:2px;"><span>cautious</span><span>confident</span></div>
       </div>
+
     </div>
   </aside>
 
 </div>
 </div><!-- /tab-train -->
 
-<!-- ════════════════════════════════════════════
-     TAB 2 — SYSTEM
-════════════════════════════════════════════ -->
+<!-- TAB: SYSTEM -->
 <div id="tab-system" class="tab-page">
 <div class="system-page">
-
-  <div class="sys-grid" id="sys-cards">
-    <!-- filled by JS -->
-  </div>
-
+  <div class="sys-grid" id="sys-cards"></div>
   <div>
-    <h3 style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:12px;">Framework Modules</h3>
+    <h3 style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:10px;">Framework Modules</h3>
     <div class="module-grid">
-      <div class="mod-card">
-        <div class="mod-icon">&#129504;</div>
-        <div class="mod-name">Financial Brain</div>
-        <div class="mod-desc">LSTM + Attention + MLP for BUY/HOLD/SELL signals</div>
-        <div class="mod-status status-ok">ACTIVE</div>
-      </div>
-      <div class="mod-card">
-        <div class="mod-icon">&#128202;</div>
-        <div class="mod-name">Data Pipeline</div>
-        <div class="mod-desc">OHLCV + RSI, MACD, BB, ATR indicators via yfinance</div>
-        <div class="mod-status status-ok">ACTIVE</div>
-      </div>
-      <div class="mod-card">
-        <div class="mod-icon">&#128301;</div>
-        <div class="mod-name">Brain Probe</div>
-        <div class="mod-desc">Live activation hooks — LSTM, attention, gradients</div>
-        <div class="mod-status status-ok">ACTIVE</div>
-      </div>
-      <div class="mod-card">
-        <div class="mod-icon">&#127760;</div>
-        <div class="mod-name">Graph Models</div>
-        <div class="mod-desc">GCN, GAT, GraphSAGE, GIN via PyG</div>
-        <div class="mod-status status-warn" id="pyg-status">CHECKING...</div>
-      </div>
-      <div class="mod-card">
-        <div class="mod-icon">&#128190;</div>
-        <div class="mod-name">ONNX Export</div>
-        <div class="mod-desc">Export trained model for inference anywhere</div>
-        <div class="mod-status status-ok">READY</div>
-      </div>
-      <div class="mod-card">
-        <div class="mod-icon">&#9881;</div>
-        <div class="mod-name">Core Engine</div>
-        <div class="mod-desc">Device init, precision, seed, compile</div>
-        <div class="mod-status status-ok">ACTIVE</div>
-      </div>
-      <div class="mod-card">
-        <div class="mod-icon">&#128200;</div>
-        <div class="mod-name">Trainer</div>
-        <div class="mod-desc">AdamW + OneCycleLR, checkpointing, eval</div>
-        <div class="mod-status status-ok">ACTIVE</div>
-      </div>
-      <div class="mod-card">
-        <div class="mod-icon">&#128065;</div>
-        <div class="mod-name">Live Viz</div>
-        <div class="mod-desc">SocketIO streaming to browser in real time</div>
-        <div class="mod-status status-ok">ACTIVE</div>
-      </div>
+      <div class="mod-card"><div class="mod-icon">🧠</div><div class="mod-name">CorticalBrain</div><div class="mod-desc">Thalamus → 6 Cortical Columns → Hippocampus → Dopamine → PFC</div><div class="mod-status status-ok">ACTIVE</div></div>
+      <div class="mod-card"><div class="mod-icon">🔬</div><div class="mod-name">Cortical Columns</div><div class="mod-desc">L4→L2/3→L5 with lateral inhibition & sparse coding (top-k)</div><div class="mod-status status-ok">ACTIVE</div></div>
+      <div class="mod-card"><div class="mod-icon">🐚</div><div class="mod-name">Hippocampal Module</div><div class="mod-desc">CA3 pattern completion + CA1 temporal attention (place cells)</div><div class="mod-status status-ok">ACTIVE</div></div>
+      <div class="mod-card"><div class="mod-icon">⚡</div><div class="mod-name">Dendritic Neurons</div><div class="mod-desc">Two-compartment (proximal+apical) with learnable gate</div><div class="mod-status status-ok">ACTIVE</div></div>
+      <div class="mod-card"><div class="mod-icon">💊</div><div class="mod-name">Dopaminergic Module</div><div class="mod-desc">VTA/SNc reward-prediction signal for neuromodulatory gain</div><div class="mod-status status-ok">ACTIVE</div></div>
+      <div class="mod-card"><div class="mod-icon">📡</div><div class="mod-name">Thalamic Gate</div><div class="mod-desc">Predictive sensory relay with multiplicative gating</div><div class="mod-status status-ok">ACTIVE</div></div>
+      <div class="mod-card"><div class="mod-icon">📊</div><div class="mod-name">Data Pipeline</div><div class="mod-desc">OHLCV + RSI, MACD, BB, ATR via yfinance</div><div class="mod-status status-ok">ACTIVE</div></div>
+      <div class="mod-card"><div class="mod-icon">💾</div><div class="mod-name">ONNX Export</div><div class="mod-desc">Export trained cortical brain for inference anywhere</div><div class="mod-status status-ok">READY</div></div>
     </div>
   </div>
-
 </div>
-</div><!-- /tab-system -->
+</div>
 
-<!-- ════════════════════════════════════════════
-     TAB 3 — EXPORT
-════════════════════════════════════════════ -->
+<!-- TAB: EXPORT -->
 <div id="tab-export" class="tab-page">
 <div class="export-page">
-
   <div class="export-card">
-    <h3>&#128190; Export to ONNX</h3>
-    <p>Export your best trained checkpoint to ONNX format for inference in any environment — Python, C++, browser, mobile.</p>
+    <h3>💾 Export to ONNX</h3>
+    <p>Export your best trained checkpoint to ONNX for inference in Python, C++, browser, or mobile.</p>
     <div class="field"><label>Window size (must match training)</label><input id="ex-window" type="number" value="30"/></div>
-    <div class="field"><label>Hidden units (must match training)</label><input id="ex-hidden" type="number" value="128"/></div>
-    <div class="field"><label>LSTM layers (must match training)</label><input id="ex-layers" type="number" value="2"/></div>
-    <button class="btn btn-export" onclick="exportONNX()">&#9654; Export Model</button>
+    <div class="field"><label>Model type</label><select id="ex-model-type"><option value="cortical">CorticalBrain</option><option value="lstm">FinancialBrain (LSTM)</option></select></div>
+    <button class="btn btn-export" onclick="exportONNX()">▶ Export Model</button>
     <div class="export-result" id="export-result">No export yet. Train a model first.</div>
   </div>
-
   <div class="export-card">
-    <h3>&#128196; Run Inference</h3>
-    <p>After export, load the ONNX model like this:</p>
-    <pre style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:14px;font-size:11px;color:var(--cyan);overflow-x:auto;">import onnxruntime as ort
+    <h3>📄 Run Inference</h3>
+    <p>After export, load the ONNX model:</p>
+    <pre style="background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:12px;font-size:10px;color:var(--cyan);overflow-x:auto;">import onnxruntime as ort
 import numpy as np
 
-sess = ort.InferenceSession("checkpoints/best_model.onnx",
-       providers=["CUDAExecutionProvider","CPUExecutionProvider"])
+sess = ort.InferenceSession(
+  "checkpoints/best_model.onnx",
+  providers=["CUDAExecutionProvider","CPUExecutionProvider"]
+)
 
 # candles: (batch, window, features) float32
 candles = np.random.randn(1, 30, 11).astype(np.float32)
@@ -454,86 +434,103 @@ logits, attn = sess.run(None, {"candles": candles})
 label = ["BUY","HOLD","SELL"][logits[0].argmax()]
 print(f"Signal: {label}")</pre>
   </div>
-
   <div class="export-card">
-    <h3>&#128203; Checkpoint Info</h3>
-    <div id="ckpt-info" style="font-size:12px;color:var(--muted);">Loading...</div>
+    <h3>📋 Checkpoint Info</h3>
+    <div id="ckpt-info" style="font-size:11px;color:var(--muted)">Loading...</div>
   </div>
-
 </div>
-</div><!-- /tab-export -->
+</div>
 
 <script>
 const socket = io();
 let _totalEpochs = 0;
+let _selectedModel = 'cortical';
 
-// ── Tab switching ─────────────────────────────────────────
+// ── Tab switching ────────────────────────────────────────────
 function switchTab(name) {
-  document.querySelectorAll('.tab').forEach((t,i) => {
-    const names = ['train','system','export'];
-    t.classList.toggle('active', names[i] === name);
+  ['train','system','export'].forEach((n,i) => {
+    document.querySelectorAll('.tab')[i].classList.toggle('active', n===name);
   });
-  document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-page').forEach(p=>p.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
-  if (name === 'system') loadSystem();
-  if (name === 'export') loadExport();
+  if(name==='system') loadSystem();
+  if(name==='export') loadExport();
 }
 
-// ── Charts setup ──────────────────────────────────────────
-let epochs=[], tLoss=[], vLoss=[], tAcc=[], vAcc=[], lrs=[];
+// ── Model selection ──────────────────────────────────────────
+function selectModel(type) {
+  _selectedModel = type;
+  document.getElementById('btn-cortical').classList.toggle('active', type==='cortical');
+  document.getElementById('btn-lstm').classList.toggle('active', type==='lstm');
+  document.getElementById('cortical-params').style.display = type==='cortical'?'':'none';
+  document.getElementById('lstm-params').style.display = type==='lstm'?'':'none';
+}
+
+// ── Chart init ───────────────────────────────────────────────
 const PLY = () => ({
   paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
-  font:{color:'#dde4f0',size:10},
-  margin:{l:36,r:8,t:4,b:28},
+  font:{color:'#dde4f0',size:9},
+  margin:{l:32,r:6,t:2,b:22},
   xaxis:{gridcolor:'#1a2540',zeroline:false,title:'Epoch'},
   yaxis:{gridcolor:'#1a2540',zeroline:false},
-  showlegend:true, legend:{x:.01,y:.99,bgcolor:'rgba(0,0,0,0)',font:{size:10}},
+  showlegend:false,
 });
 const CFG = {responsive:true, displayModeBar:false};
 
 Plotly.newPlot('ch-loss',[
-  {x:[],y:[],name:'Train',line:{color:'#3b82f6',width:2}},
-  {x:[],y:[],name:'Val',  line:{color:'#f97316',width:2,dash:'dash'}},
+  {x:[],y:[],name:'Train',line:{color:'#3b82f6',width:1.5}},
+  {x:[],y:[],name:'Val',  line:{color:'#f97316',width:1.5,dash:'dash'}},
 ],PLY(),CFG);
 Plotly.newPlot('ch-acc',[
-  {x:[],y:[],name:'Train',line:{color:'#22c55e',width:2}},
-  {x:[],y:[],name:'Val',  line:{color:'#a78bfa',width:2,dash:'dash'}},
+  {x:[],y:[],name:'Train',line:{color:'#22c55e',width:1.5}},
+  {x:[],y:[],name:'Val',  line:{color:'#a78bfa',width:1.5,dash:'dash'}},
+  {x:[0],y:[0.333],name:'Random',line:{color:'#3a4a6a',width:1,dash:'dot'}},
 ],{...PLY(),yaxis:{gridcolor:'#1a2540',zeroline:false,tickformat:'.0%'}},CFG);
 Plotly.newPlot('ch-lr',[
-  {x:[],y:[],name:'LR',line:{color:'#f59e0b',width:2},fill:'tozeroy',fillcolor:'rgba(245,158,11,.1)'},
+  {x:[],y:[],name:'LR',line:{color:'#f59e0b',width:1.5},fill:'tozeroy',fillcolor:'rgba(245,158,11,.08)'},
 ],{...PLY(),yaxis:{gridcolor:'#1a2540',zeroline:false,exponentformat:'e'}},CFG);
 
-// ── Socket events ─────────────────────────────────────────
+let epochs=[],tLoss=[],vLoss=[],tAcc=[],vAcc=[],lrs=[];
+
+// ── Socket events ────────────────────────────────────────────
 socket.on('epoch_metrics', m => {
   epochs.push(m.epoch); tLoss.push(m.train_loss); vLoss.push(m.val_loss);
   tAcc.push(m.train_acc); vAcc.push(m.val_acc); lrs.push(m.lr);
   Plotly.update('ch-loss',{x:[epochs,epochs],y:[tLoss,vLoss]});
-  Plotly.update('ch-acc', {x:[epochs,epochs],y:[tAcc, vAcc]});
-  Plotly.update('ch-lr',  {x:[epochs.map((_,i)=>i+1)],y:[lrs]});
+  Plotly.update('ch-acc', {x:[epochs,epochs,epochs],y:[tAcc,vAcc,Array(epochs.length).fill(0.333)]});
+  Plotly.update('ch-lr',  {x:[epochs],y:[lrs]});
   document.getElementById('h-epoch').textContent = m.epoch;
   if(_totalEpochs>0){
     document.getElementById('h-epoch-total').textContent='/'+_totalEpochs;
     document.getElementById('epoch-bar').style.width=(m.epoch/_totalEpochs*100).toFixed(1)+'%';
   }
-  document.getElementById('h-tacc').textContent  = pct(m.train_acc);
-  document.getElementById('h-vacc').textContent  = pct(m.val_acc);
-  document.getElementById('h-vloss').textContent = m.val_loss.toFixed(4);
-  document.getElementById('s-tloss').textContent = m.train_loss.toFixed(4);
-  document.getElementById('s-vloss').textContent = m.val_loss.toFixed(4);
-  document.getElementById('s-tacc').textContent  = pct(m.train_acc);
-  document.getElementById('s-vacc').textContent  = pct(m.val_acc);
+  document.getElementById('h-vacc').textContent   = pct(m.val_acc);
+  document.getElementById('h-vloss').textContent  = m.val_loss.toFixed(4);
+  document.getElementById('s-tloss').textContent  = m.train_loss.toFixed(4);
+  document.getElementById('s-vloss').textContent  = m.val_loss.toFixed(4);
+  document.getElementById('s-tacc').textContent   = pct(m.train_acc);
+  document.getElementById('s-vacc').textContent   = pct(m.val_acc);
 });
 
 socket.on('batch_metrics', m => {
   document.getElementById('s-bloss').textContent = m.batch_loss.toFixed(4);
-  if (m.signal_probs) updateSignals(m.signal_probs);
+  if(m.signal_probs) updateSignals(m.signal_probs);
+  if(m.dopamine !== undefined) updateDopamine(m.dopamine);
 });
 
 socket.on('brain_state', snap => {
-  if (snap.attention)       drawAttention(snap.attention);
-  if (snap.lstm_heatmap)    drawLSTM(snap.lstm_heatmap);
-  if (snap.classifier)      drawClassifier(snap.classifier);
-  if (snap.grad_magnitudes) drawGradients(snap.grad_magnitudes);
+  if(snap.type === 'cortical') {
+    if(snap.thalamus_activation) drawThalamus(snap.thalamus_activation);
+    if(snap.attention)           drawAttention(snap.attention);
+    if(snap.cortical_columns)    drawColumns(snap.cortical_columns);
+    if(snap.hippocampus_ca3)     drawHippo(snap.hippocampus_ca3);
+    if(snap.prefrontal)          drawPFC(snap.prefrontal);
+    if(snap.dopamine !== undefined) updateDopamine(snap.dopamine);
+  } else {
+    if(snap.attention)       drawAttention(snap.attention);
+    if(snap.lstm_heatmap)    drawHippoLegacy(snap.lstm_heatmap);
+    if(snap.classifier)      drawPFCLegacy(snap.classifier);
+  }
 });
 
 socket.on('training_complete', data => {
@@ -541,176 +538,192 @@ socket.on('training_complete', data => {
   drawConfusion(data.confusion_matrix);
   const r = data.report;
   ['BUY','HOLD','SELL'].forEach(c => {
-    if(r[c]) log(`${c}: P=${r[c].precision.toFixed(3)} R=${r[c].recall.toFixed(3)} F1=${r[c]['f1-score'].toFixed(3)}`);
+    if(r[c]) log(`${c}: P=${r[c].precision.toFixed(3)} R=${r[c].recall.toFixed(3)} F1=${r[c]['f1-score'].toFixed(3)} (n=${r[c].support})`);
   });
-  // Populate export fields from training config
-  if (data.window) document.getElementById('ex-window').value = data.window;
-  if (data.hidden) document.getElementById('ex-hidden').value = data.hidden;
-  if (data.layers) document.getElementById('ex-layers').value = data.layers;
+  if(data.window) document.getElementById('ex-window').value = data.window;
+  if(data.model_type) document.getElementById('ex-model-type').value = data.model_type;
 });
 
 socket.on('log',   d => log(d.msg));
-socket.on('error', d => log('ERROR: '+d.msg));
+socket.on('error', d => { log('❌ ERROR: '+d.msg); setBadge('idle','ERROR'); });
 
-// ── Signal bars ───────────────────────────────────────────
+// ── Signal bars ──────────────────────────────────────────────
 function updateSignals(p) {
-  const total = p.BUY + p.HOLD + p.SELL || 1;
-  setBar('buy',  p.BUY/total);
-  setBar('hold', p.HOLD/total);
-  setBar('sell', p.SELL/total);
+  const total = (p.BUY+p.HOLD+p.SELL) || 1;
+  setBar('buy', p.BUY/total); setBar('hold',p.HOLD/total); setBar('sell',p.SELL/total);
 }
-function setBar(id, frac) {
-  const pctStr = (frac*100).toFixed(1)+'%';
-  document.getElementById('bar-'+id).style.width = pctStr;
-  document.getElementById('val-'+id).textContent  = pctStr;
+function setBar(id,frac) {
+  const s = (frac*100).toFixed(1)+'%';
+  document.getElementById('bar-'+id).style.width=s;
+  document.getElementById('val-'+id).textContent=s;
 }
 
-// ── Attention canvas ──────────────────────────────────────
-function drawAttention(weights) {
-  const c = document.getElementById('attn-canvas');
-  const W = c.offsetWidth, H = 50;
-  c.width = W; c.height = H;
-  const ctx = c.getContext('2d');
+// ── Dopamine ─────────────────────────────────────────────────
+function updateDopamine(val) {
+  const pctStr = (val*100).toFixed(1)+'%';
+  document.getElementById('dopa-bar').style.width=pctStr;
+  document.getElementById('dopa-bar-full').style.width=pctStr;
+  document.getElementById('dopa-val').textContent=(val*100).toFixed(0)+'%';
+}
+
+// ── Thalamic gate ────────────────────────────────────────────
+function drawThalamus(acts) {
+  const c=document.getElementById('thalamus-canvas');
+  const W=c.offsetWidth||280, H=24;
+  c.width=W; c.height=H;
+  const ctx=c.getContext('2d');
   ctx.clearRect(0,0,W,H);
-  const n = weights.length, cellW = W/n;
-  const max = Math.max(...weights, 1e-9);
-  weights.forEach((w,i) => {
-    const t = w/max;
-    const r = Math.round(t*59+(1-t)*26);
-    const g = Math.round(t*130+(1-t)*37);
-    const b = Math.round(t*246+(1-t)*64);
+  const n=acts.length, cW=W/n;
+  const mx=Math.max(...acts,1e-9);
+  acts.forEach((v,i)=>{
+    const t=v/mx;
+    const r=Math.round(t*34+(1-t)*14);
+    const g=Math.round(t*211+(1-t)*37);
+    const b=Math.round(t*211+(1-t)*64);
     ctx.fillStyle=`rgb(${r},${g},${b})`;
-    ctx.fillRect(Math.floor(i*cellW),0,Math.ceil(cellW),H);
+    ctx.fillRect(Math.floor(i*cW),0,Math.ceil(cW),H);
+  });
+}
+
+// ── Hippocampal attention ────────────────────────────────────
+function drawAttention(weights) {
+  const c=document.getElementById('attn-canvas');
+  const W=c.offsetWidth||280, H=32;
+  c.width=W; c.height=H;
+  const ctx=c.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+  const n=weights.length, cW=W/n;
+  const mx=Math.max(...weights,1e-9);
+  weights.forEach((w,i)=>{
+    const t=w/mx;
+    const r=Math.round(t*59+(1-t)*26);
+    const g=Math.round(t*130+(1-t)*37);
+    const bl=Math.round(t*246+(1-t)*64);
+    ctx.fillStyle=`rgb(${r},${g},${bl})`;
+    ctx.fillRect(Math.floor(i*cW),0,Math.ceil(cW),H);
   });
   [...weights].map((v,i)=>({v,i})).sort((a,b)=>b.v-a.v).slice(0,3).forEach(({i})=>{
-    ctx.strokeStyle='#fff'; ctx.lineWidth=1.5;
-    ctx.strokeRect(Math.floor(i*cellW)+1,1,Math.ceil(cellW)-2,H-2);
+    ctx.strokeStyle='rgba(255,255,255,0.7)'; ctx.lineWidth=1;
+    ctx.strokeRect(Math.floor(i*cW)+0.5,0.5,Math.ceil(cW)-1,H-1);
   });
 }
 
-// ── LSTM heatmap ──────────────────────────────────────────
-function drawLSTM(heatmap) {
-  const c = document.getElementById('lstm-canvas');
-  const W = c.offsetWidth, H = 80;
-  c.width = W; c.height = H;
-  const ctx = c.getContext('2d');
-  ctx.clearRect(0,0,W,H);
-  const units = heatmap.length, time = heatmap[0]?.length||1;
-  const cW = W/time, cH = H/units;
-  let gMax=0,gMin=0;
-  heatmap.forEach(row=>row.forEach(v=>{if(v>gMax)gMax=v;if(v<gMin)gMin=v;}));
-  const range=Math.max(gMax-gMin,1e-9);
-  heatmap.forEach((row,ui)=>row.forEach((val,ti)=>{
-    const norm=(val-gMin)/range;
-    let r,g,b;
-    if(norm<.5){const t=norm*2;r=Math.round(t*30);g=Math.round(t*100);b=Math.round(255-t*100);}
-    else{const t=(norm-.5)*2;r=Math.round(30+t*220);g=Math.round(100+t*58);b=Math.round(155-t*140);}
-    ctx.fillStyle=`rgb(${r},${g},${b})`;
-    ctx.fillRect(Math.floor(ti*cW),Math.floor(ui*cH),Math.ceil(cW),Math.ceil(cH));
-  }));
-}
-
-// ── Classifier neurons ────────────────────────────────────
-function drawClassifier(layers) {
-  const container = document.getElementById('neuron-layers');
-  container.innerHTML='';
-  layers.forEach(layer=>{
-    const lbl=document.createElement('div');
-    lbl.style.cssText='font-size:10px;color:var(--muted);margin:6px 0 3px';
-    lbl.textContent=layer.name; container.appendChild(lbl);
-    const grid=document.createElement('div'); grid.className='neuron-grid';
-    const acts=layer.activations, maxA=Math.max(...acts.map(Math.abs),1e-9);
-    acts.forEach(v=>{
-      const el=document.createElement('div'); el.className='neuron';
-      const norm=v/maxA;
-      el.style.background=norm>0?`rgba(34,197,94,${.15+norm*.85})`:`rgba(239,68,68,${.15+(-norm)*.85})`;
-      grid.appendChild(el);
+// ── Cortical columns ─────────────────────────────────────────
+function drawColumns(cols) {
+  const container=document.getElementById('col-grid');
+  if(container.children.length !== cols.length) {
+    container.innerHTML='';
+    cols.forEach((col,i)=>{
+      const card=document.createElement('div'); card.className='col-card';
+      card.id='col-'+i;
+      card.innerHTML=`<div class="col-card-title">${col.name||'Col '+(i+1)}</div><div class="col-neurons" id="col-neurons-${i}"></div><div class="fire-rate-bar" id="col-fr-${i}" style="width:50%"></div>`;
+      container.appendChild(card);
     });
-    container.appendChild(grid);
+  }
+  cols.forEach((col,i)=>{
+    const grid=document.getElementById('col-neurons-'+i);
+    const acts=col.activations||[];
+    if(grid.children.length !== acts.length) {
+      grid.innerHTML='';
+      acts.forEach(()=>{const n=document.createElement('div');n.className='col-neuron';grid.appendChild(n);});
+    }
+    const mx=Math.max(...acts.map(Math.abs),1e-9);
+    [...grid.children].forEach((n,j)=>{
+      const v=acts[j]||0, norm=v/mx;
+      n.style.background = norm>0
+        ? `rgba(34,197,94,${0.1+norm*0.9})`
+        : `rgba(239,68,68,${0.1+(-norm)*0.9})`;
+    });
+    const fr=Math.min(100,(col.mean_fire_rate||0)*200).toFixed(0)+'%';
+    document.getElementById('col-fr-'+i).style.width=fr;
   });
 }
 
-// ── Gradient flow ─────────────────────────────────────────
-let gradMax={};
-function drawGradients(mags) {
-  const container=document.getElementById('grad-bars');
-  container.innerHTML='';
-  Object.entries(mags).forEach(([key,val])=>{
-    gradMax[key]=Math.max(gradMax[key]||0,val);
-    const pct=gradMax[key]>0?(val/gradMax[key]*100).toFixed(1)+'%':'0%';
-    const row=document.createElement('div'); row.className='grad-row';
-    row.innerHTML=`
-      <div class="grad-label">${key.replace('grad_classifier_','L')}</div>
-      <div class="grad-bar-wrap"><div class="grad-bar" style="width:${pct}"></div></div>
-      <div style="font-size:10px;color:var(--muted);font-family:monospace;width:42px;text-align:right">${val.toExponential(1)}</div>`;
-    container.appendChild(row);
+// ── Hippocampal CA3 heatmap ──────────────────────────────────
+function drawHippo(heatmap) {
+  const c=document.getElementById('hippo-canvas');
+  const rows=heatmap.length, cols=rows>0?heatmap[0].length:0;
+  if(!rows||!cols) return;
+  c.width=cols; c.height=rows;
+  const ctx=c.getContext('2d');
+  let mn=Infinity, mx=-Infinity;
+  heatmap.forEach(r=>r.forEach(v=>{if(v<mn)mn=v;if(v>mx)mx=v;}));
+  const rng=Math.max(mx-mn,1e-9);
+  const img=ctx.createImageData(cols,rows);
+  heatmap.forEach((row,ri)=>row.forEach((val,ci)=>{
+    const norm=(val-mn)/rng;
+    let r,g,b;
+    if(norm<0.5){const t=norm*2;r=Math.round(t*30);g=Math.round(t*100);b=Math.round(255-t*100);}
+    else{const t=(norm-0.5)*2;r=Math.round(30+t*220);g=Math.round(100+t*58);b=Math.round(155-t*140);}
+    const idx=(ri*cols+ci)*4;
+    img.data[idx]=r;img.data[idx+1]=g;img.data[idx+2]=b;img.data[idx+3]=255;
+  }));
+  ctx.putImageData(img,0,0);
+}
+
+function drawHippoLegacy(heatmap) {
+  // reuse hippo-canvas for LSTM heatmap
+  drawHippo(heatmap);
+}
+
+// ── PFC neurons ──────────────────────────────────────────────
+function drawPFC(acts) {
+  const container=document.getElementById('pfc-neurons');
+  if(container.children.length!==acts.length){
+    container.innerHTML='';
+    acts.forEach(()=>{const n=document.createElement('div');n.className='neuron';container.appendChild(n);});
+  }
+  const mx=Math.max(...acts.map(Math.abs),1e-9);
+  [...container.children].forEach((n,i)=>{
+    const v=acts[i]||0, norm=v/mx;
+    n.style.background=norm>0?`rgba(34,197,94,${0.1+norm*0.9})`:`rgba(239,68,68,${0.1+(-norm)*0.9})`;
   });
 }
 
-// ── Confusion matrix ──────────────────────────────────────
+function drawPFCLegacy(layers) {
+  const acts=(layers[0]||{activations:[]}).activations;
+  drawPFC(acts);
+}
+
+// ── Confusion matrix ──────────────────────────────────────────
 function drawConfusion(cm) {
-  const labels=['BUY','HOLD','SELL'];
   Plotly.newPlot('ch-cm',[{
-    z:cm,x:labels,y:labels,type:'heatmap',
-    colorscale:[[0,'#0e1320'],[.5,'#1a3060'],[1,'#3b82f6']],
-    text:cm.map(r=>r.map(v=>String(v))),texttemplate:'%{text}',showscale:false,hoverinfo:'none',
+    z:cm, x:['BUY','HOLD','SELL'], y:['BUY','HOLD','SELL'],
+    type:'heatmap',
+    colorscale:[[0,'#0e1320'],[0.5,'#1a3060'],[1,'#3b82f6']],
+    text:cm.map(r=>r.map(v=>String(v))), texttemplate:'%{text}',
+    showscale:false, hoverinfo:'none',
   }],{
-    paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',
-    font:{color:'#dde4f0',size:11},margin:{l:48,r:8,t:4,b:36},
-    xaxis:{title:'Predicted'},yaxis:{title:'Actual',autorange:'reversed'},
+    paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
+    font:{color:'#dde4f0',size:10}, margin:{l:44,r:6,t:4,b:32},
+    xaxis:{title:'Predicted'}, yaxis:{title:'Actual',autorange:'reversed'},
   },CFG);
 }
 
-// ── System tab ────────────────────────────────────────────
+// ── System tab ────────────────────────────────────────────────
 function loadSystem() {
   fetch('/api/system').then(r=>r.json()).then(info=>{
-    const container=document.getElementById('sys-cards');
-    container.innerHTML='';
-
-    const cards=[
-      {title:'PyTorch', rows:[
-        ['Version', info.pytorch_version],
-        ['CUDA Available', info.cuda_available?'Yes':'No'],
-        ['CUDA Version', info.cuda_version||'N/A'],
-      ]},
-      {title:'GPU', rows:[
-        ['Name', info.gpu_name||'N/A'],
-        ['VRAM', info.gpu_vram_gb?(info.gpu_vram_gb+' GB'):'N/A'],
-        ['SM Count', info.gpu_sm_count||'N/A'],
-      ]},
-      {title:'Engine', rows:[
-        ['Device', info.device],
-        ['Precision', info.precision],
-        ['Checkpoint', info.checkpoint_exists?'Saved':'None'],
-        ['Best Val Acc', info.best_val_acc?(info.best_val_acc*100).toFixed(2)+'%':'N/A'],
-        ['Best Epoch', info.best_epoch||'N/A'],
-      ]},
-    ];
-
-    cards.forEach(card=>{
+    const c=document.getElementById('sys-cards'); c.innerHTML='';
+    [{title:'PyTorch',rows:[['Version',info.pytorch_version],['CUDA',info.cuda_available?'Yes':'No'],['CUDA Ver',info.cuda_version||'N/A']]},
+     {title:'GPU',rows:[['Name',info.gpu_name||'N/A'],['VRAM',(info.gpu_vram_gb||'N/A')+' GB'],['SM Count',info.gpu_sm_count||'N/A']]},
+     {title:'Best Model',rows:[['Checkpoint',info.checkpoint_exists?'Saved':'None'],['Val Acc',info.best_val_acc?(info.best_val_acc*100).toFixed(2)+'%':'N/A'],['Epoch',info.best_epoch||'N/A'],['ONNX',info.onnx_exists?'Yes':'No']]},
+    ].forEach(card=>{
       const el=document.createElement('div'); el.className='sys-card';
-      el.innerHTML=`<h3>${card.title}</h3>`+card.rows.map(([k,v])=>`
-        <div class="sys-row"><span class="sys-key">${k}</span><span class="sys-val">${v||'N/A'}</span></div>`).join('');
-      container.appendChild(el);
+      el.innerHTML=`<h3>${card.title}</h3>`+card.rows.map(([k,v])=>`<div class="sys-row"><span class="sys-key">${k}</span><span class="sys-val">${v||'N/A'}</span></div>`).join('');
+      c.appendChild(el);
     });
-
-    // Check PyG
-    document.getElementById('pyg-status').textContent = 'READY';
-    document.getElementById('pyg-status').className   = 'mod-status status-ok';
   });
 }
 
-// ── Export tab ────────────────────────────────────────────
+// ── Export tab ────────────────────────────────────────────────
 function loadExport() {
   fetch('/api/system').then(r=>r.json()).then(info=>{
     const el=document.getElementById('ckpt-info');
     if(info.checkpoint_exists){
-      el.innerHTML=`
-        <div style="display:flex;flex-direction:column;gap:6px;">
-          <div>&#9989; Checkpoint found at <code style="color:var(--cyan)">checkpoints/best_model.pt</code></div>
-          <div>Best val accuracy: <strong style="color:var(--green)">${info.best_val_acc?(info.best_val_acc*100).toFixed(2)+'%':'N/A'}</strong> at epoch <strong>${info.best_epoch||'?'}</strong></div>
-          <div>ONNX exported: <strong style="color:${info.onnx_exists?'var(--green)':'var(--muted)'}">${info.onnx_exists?'Yes':'Not yet'}</strong></div>
-        </div>`;
+      el.innerHTML=`<div style="display:flex;flex-direction:column;gap:5px;">
+        <div>✅ Checkpoint: <code style="color:var(--cyan)">checkpoints/best_model.pt</code></div>
+        <div>Val accuracy: <strong style="color:var(--green)">${info.best_val_acc?(info.best_val_acc*100).toFixed(2)+'%':'N/A'}</strong> at epoch <strong>${info.best_epoch||'?'}</strong></div>
+        <div>ONNX: <strong style="color:${info.onnx_exists?'var(--green)':'var(--muted)'}">${info.onnx_exists?'Yes':'Not yet'}</strong></div></div>`;
     } else {
       el.innerHTML='<span style="color:var(--muted)">No checkpoint yet. Train a model first.</span>';
     }
@@ -719,77 +732,53 @@ function loadExport() {
 
 async function exportONNX() {
   const res=document.getElementById('export-result');
-  res.style.color='var(--yellow)';
-  res.textContent='Exporting...';
-  const resp=await fetch('/api/export_onnx',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      window: +document.getElementById('ex-window').value,
-      hidden: +document.getElementById('ex-hidden').value,
-      layers: +document.getElementById('ex-layers').value,
-    })
-  });
+  res.style.color='var(--yellow)'; res.textContent='Exporting...';
+  const resp=await fetch('/api/export_onnx',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({window:+document.getElementById('ex-window').value,model_type:document.getElementById('ex-model-type').value})});
   const data=await resp.json();
-  if(data.ok){
-    res.style.color='var(--green)';
-    res.textContent='Export successful!\nSaved to: '+data.path;
-  } else {
-    res.style.color='var(--red)';
-    res.textContent='Error: '+data.error;
-  }
+  res.style.color=data.ok?'var(--green)':'var(--red)';
+  res.textContent=data.ok?'✅ Export successful!\n'+data.path:'❌ Error: '+data.error;
 }
 
-// ── Helpers ───────────────────────────────────────────────
+// ── Training controls ─────────────────────────────────────────
+function startTraining() {
+  epochs=[]; tLoss=[]; vLoss=[]; tAcc=[]; vAcc=[]; lrs=[];
+  document.getElementById('col-grid').innerHTML='';
+  document.getElementById('pfc-neurons').innerHTML='';
+  const cfg = {
+    ticker:      document.getElementById('cfg-ticker').value,
+    period:      document.getElementById('cfg-period').value,
+    window:      document.getElementById('cfg-window').value,
+    forward:     document.getElementById('cfg-forward').value,
+    thresh:      document.getElementById('cfg-thresh').value,
+    epochs:      document.getElementById('cfg-epochs').value,
+    lr:          document.getElementById('cfg-lr').value,
+    batch:       document.getElementById('cfg-batch').value,
+    probe_every: document.getElementById('cfg-probe').value,
+    model_type:  _selectedModel,
+    col_dim:     document.getElementById('cfg-col-dim').value,
+    memory_dim:  document.getElementById('cfg-mem-dim').value,
+    sparsity_k:  document.getElementById('cfg-sparsity').value,
+    hidden:      document.getElementById('cfg-hidden').value,
+    layers:      document.getElementById('cfg-layers').value,
+  };
+  _totalEpochs = parseInt(cfg.epochs)||30;
+  setBadge('training','TRAINING');
+  socket.emit('start_training', cfg);
+}
+function stopTraining() { socket.emit('stop_training'); setBadge('idle','STOPPED'); }
+
+function setBadge(type,txt) {
+  const b=document.getElementById('status-badge');
+  b.className='badge badge-'+type; b.textContent=txt;
+}
+
 function pct(v){return (v*100).toFixed(1)+'%';}
 function log(msg){
   const el=document.getElementById('log-out');
   el.textContent+='\n> '+msg;
   el.scrollTop=el.scrollHeight;
 }
-function setBadge(state,text){
-  const el=document.getElementById('status-badge');
-  el.className='badge badge-'+state;
-  el.textContent=text;
-}
-function startTraining(){
-  epochs=[]; tLoss=[]; vLoss=[]; tAcc=[]; vAcc=[]; lrs=[]; gradMax={};
-  Plotly.update('ch-loss',{x:[[],[]],y:[[],[]]});
-  Plotly.update('ch-acc', {x:[[],[]],y:[[],[]]});
-  Plotly.update('ch-lr',  {x:[[]],y:[[]]});
-  setBadge('training','TRAINING');
-  socket.emit('start_training',{
-    ticker:  document.getElementById('c-ticker').value,
-    period:  document.getElementById('c-period').value,
-    window:  document.getElementById('c-window').value,
-    forward: document.getElementById('c-forward').value,
-    thresh:  document.getElementById('c-thresh').value,
-    epochs:  document.getElementById('c-epochs').value,
-    lr:      document.getElementById('c-lr').value,
-    batch:   document.getElementById('c-batch').value,
-    hidden:  document.getElementById('c-hidden').value,
-    layers:  document.getElementById('c-layers').value,
-    probe_every: document.getElementById('c-probe').value,
-  });
-}
-function stopTraining(){socket.emit('stop_training');setBadge('idle','IDLE');}
-
-// Load history on open
-fetch('/api/status').then(r=>r.json()).then(d=>{
-  if(d.training) setBadge('training','TRAINING');
-  if(d.history&&d.history.length){
-    d.history.forEach(m=>{
-      epochs.push(m.epoch);tLoss.push(m.train_loss);vLoss.push(m.val_loss);
-      tAcc.push(m.train_acc);vAcc.push(m.val_acc);lrs.push(m.lr);
-    });
-    Plotly.update('ch-loss',{x:[epochs,epochs],y:[tLoss,vLoss]});
-    Plotly.update('ch-acc', {x:[epochs,epochs],y:[tAcc, vAcc]});
-    Plotly.update('ch-lr',  {x:[epochs.map((_,i)=>i+1)],y:[lrs]});
-    const last=d.history[d.history.length-1];
-    document.getElementById('h-epoch').textContent=last.epoch;
-    document.getElementById('h-vacc').textContent=pct(last.val_acc);
-  }
-});
 </script>
 </body>
 </html>
