@@ -1,6 +1,6 @@
 """
 NeuralForge - Financial Brain Trainer
-Trains the LSTM+MLP model, emits live metrics via callbacks.
+Trains the LSTM+MLP model, emits live metrics + brain activations via callbacks.
 """
 
 import os
@@ -16,6 +16,7 @@ from torch.optim import AdamW
 from torch.optim.lr_scheduler import OneCycleLR
 
 from neural_forge.models.financial_brain import FinancialBrain
+from neural_forge.visualization.brain_probe import BrainProbe
 
 
 CHECKPOINT_DIR = Path("checkpoints")
@@ -25,29 +26,36 @@ CHECKPOINT_DIR.mkdir(exist_ok=True)
 class Trainer:
     def __init__(
         self,
-        model:        FinancialBrain,
+        model:          FinancialBrain,
         train_loader,
         val_loader,
-        class_weights: Optional[torch.Tensor] = None,
-        lr:            float = 3e-4,
-        epochs:        int   = 30,
-        device:        str   = "auto",
-        on_epoch_end:  Optional[Callable] = None,   # callback(metrics_dict)
-        on_batch_end:  Optional[Callable] = None,   # callback(batch_metrics)
+        class_weights:  Optional[torch.Tensor] = None,
+        lr:             float = 3e-4,
+        epochs:         int   = 30,
+        device:         str   = "auto",
+        probe_every:    int   = 10,           # emit brain snapshot every N batches
+        on_epoch_end:   Optional[Callable] = None,
+        on_batch_end:   Optional[Callable] = None,
+        on_brain_state: Optional[Callable] = None,  # callback(snapshot_dict)
     ):
         if device == "auto":
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         else:
             self.device = torch.device(device)
 
-        self.model        = model.to(self.device)
-        self.train_loader = train_loader
-        self.val_loader   = val_loader
-        self.epochs       = epochs
-        self.on_epoch_end = on_epoch_end
-        self.on_batch_end = on_batch_end
+        self.model          = model.to(self.device)
+        self.train_loader   = train_loader
+        self.val_loader     = val_loader
+        self.epochs         = epochs
+        self.probe_every    = probe_every
+        self.on_epoch_end   = on_epoch_end
+        self.on_batch_end   = on_batch_end
+        self.on_brain_state = on_brain_state
 
-        # Loss — weighted cross-entropy for class imbalance
+        # Attach brain probe
+        self.probe = BrainProbe(self.model)
+
+        # Loss
         if class_weights is not None:
             class_weights = class_weights.to(self.device)
         self.criterion = nn.CrossEntropyLoss(weight=class_weights)
@@ -63,7 +71,7 @@ class Trainer:
             anneal_strategy="cos",
         )
 
-        self.history = []
+        self.history      = []
         self.best_val_acc = 0.0
         self.best_epoch   = 0
 
@@ -106,17 +114,17 @@ class Trainer:
                 f"lr {lr_now:.2e} | {elapsed:.1f}s"
             )
 
-            # Save best checkpoint
             if val_acc > self.best_val_acc:
                 self.best_val_acc = val_acc
                 self.best_epoch   = epoch
                 self._save_checkpoint("best_model.pt", metrics)
-                print(f"    ✓ New best val_acc: {val_acc:.4f}")
+                print(f"    New best val_acc: {val_acc:.4f}")
 
             if self.on_epoch_end:
                 self.on_epoch_end(metrics)
 
         print(f"\n  Training complete. Best val_acc: {self.best_val_acc:.4f} @ epoch {self.best_epoch}")
+        self.probe.detach()
         return self.history
 
     def _train_epoch(self, epoch):
@@ -127,7 +135,7 @@ class Trainer:
             X, y = X.to(self.device), y.to(self.device)
 
             self.optimizer.zero_grad(set_to_none=True)
-            logits, _ = self.model(X)
+            logits, attn = self.model(X)
             loss = self.criterion(logits, y)
             loss.backward()
 
@@ -140,13 +148,33 @@ class Trainer:
             total      += y.size(0)
             total_loss += loss.item() * y.size(0)
 
+            # Signal probabilities for live display
+            with torch.no_grad():
+                probs = torch.softmax(logits, dim=-1).mean(dim=0).cpu().tolist()
+
+            batch_metrics = {
+                "epoch":      epoch,
+                "batch":      batch_idx,
+                "batch_loss": round(loss.item(), 4),
+                "batch_acc":  round((preds == y).float().mean().item(), 4),
+                "signal_probs": {
+                    "BUY":  round(probs[0], 4),
+                    "HOLD": round(probs[1], 4),
+                    "SELL": round(probs[2], 4),
+                },
+            }
+
             if self.on_batch_end:
-                self.on_batch_end({
-                    "epoch":      epoch,
-                    "batch":      batch_idx,
-                    "batch_loss": round(loss.item(), 4),
-                    "batch_acc":  round((preds == y).float().mean().item(), 4),
-                })
+                self.on_batch_end(batch_metrics)
+
+            # Emit brain activation snapshot every N batches
+            if self.on_brain_state and batch_idx % self.probe_every == 0:
+                snap = self.probe.snapshot(attn_weights=attn)
+                snap["epoch"] = epoch
+                snap["batch"] = batch_idx
+                self.on_brain_state(snap)
+
+            self.probe.clear()
 
         return total_loss / total, correct / total
 
@@ -156,9 +184,9 @@ class Trainer:
         total_loss, correct, total = 0.0, 0, 0
 
         for X, y in loader:
-            X, y    = X.to(self.device), y.to(self.device)
+            X, y      = X.to(self.device), y.to(self.device)
             logits, _ = self.model(X)
-            loss    = self.criterion(logits, y)
+            loss      = self.criterion(logits, y)
 
             preds       = logits.argmax(dim=-1)
             correct    += (preds == y).sum().item()
@@ -172,10 +200,10 @@ class Trainer:
     def _save_checkpoint(self, filename: str, metrics: dict):
         path = CHECKPOINT_DIR / filename
         torch.save({
-            "model_state":    self.model.state_dict(),
+            "model_state":     self.model.state_dict(),
             "optimizer_state": self.optimizer.state_dict(),
-            "metrics":        metrics,
-            "history":        self.history,
+            "metrics":         metrics,
+            "history":         self.history,
         }, path)
 
     def _save_history(self):
@@ -185,7 +213,7 @@ class Trainer:
     def load_best(self):
         path = CHECKPOINT_DIR / "best_model.pt"
         if path.exists():
-            ckpt = torch.load(path, map_location=self.device)
+            ckpt = torch.load(path, map_location=self.device, weights_only=True)
             self.model.load_state_dict(ckpt["model_state"])
             print(f"  Loaded best model from {path}")
         else:
@@ -193,14 +221,13 @@ class Trainer:
 
     @torch.no_grad()
     def evaluate(self, loader):
-        """Full evaluation with per-class breakdown."""
         self.model.eval()
         all_preds, all_labels = [], []
 
         for X, y in loader:
-            X = X.to(self.device)
-            logits, _ = self.model(X)
-            preds = logits.argmax(dim=-1).cpu()
+            X          = X.to(self.device)
+            logits, _  = self.model(X)
+            preds      = logits.argmax(dim=-1).cpu()
             all_preds.append(preds)
             all_labels.append(y)
 
@@ -208,8 +235,6 @@ class Trainer:
         labels = torch.cat(all_labels).numpy()
 
         from sklearn.metrics import classification_report, confusion_matrix
-        import numpy as np
-
         report = classification_report(
             labels, preds,
             target_names=["BUY", "HOLD", "SELL"],

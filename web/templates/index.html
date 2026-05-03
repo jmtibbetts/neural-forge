@@ -1,309 +1,514 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
+<meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>NeuralForge Studio — Financial Brain</title>
+<title>NeuralForge Studio</title>
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
 <style>
-  :root {
-    --bg:      #0a0e1a;
-    --panel:   #111827;
-    --border:  #1f2d45;
-    --accent:  #3b82f6;
-    --green:   #22c55e;
-    --red:     #ef4444;
-    --yellow:  #eab308;
-    --text:    #e2e8f0;
-    --muted:   #64748b;
-    --font:    'Segoe UI', system-ui, sans-serif;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; }
+:root {
+  --bg:     #07090f;
+  --panel:  #0e1320;
+  --border: #1a2540;
+  --accent: #3b82f6;
+  --green:  #22c55e;
+  --red:    #ef4444;
+  --yellow: #f59e0b;
+  --purple: #a78bfa;
+  --text:   #dde4f0;
+  --muted:  #4a5a7a;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;overflow:hidden;height:100vh;display:flex;flex-direction:column;}
 
-  header {
-    display: flex; align-items: center; gap: 12px;
-    padding: 14px 24px; border-bottom: 1px solid var(--border);
-    background: var(--panel);
-  }
-  header h1 { font-size: 18px; font-weight: 700; letter-spacing: .5px; }
-  header span { font-size: 12px; color: var(--muted); margin-left: auto; }
+/* Header */
+header{display:flex;align-items:center;gap:12px;padding:10px 20px;border-bottom:1px solid var(--border);background:var(--panel);flex-shrink:0;}
+header h1{font-size:16px;font-weight:700;letter-spacing:.5px;}
+.badge{padding:2px 9px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.5px;}
+.badge-idle{background:#1a2540;color:var(--muted);}
+.badge-training{background:#1a3060;color:var(--accent);animation:pulse 1.5s infinite;}
+.badge-done{background:#0f3020;color:var(--green);}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.5;}}
+.hdr-stat{margin-left:auto;display:flex;gap:24px;}
+.hdr-s{text-align:center;}
+.hdr-s .v{font-size:17px;font-weight:700;}
+.hdr-s .l{font-size:10px;color:var(--muted);text-transform:uppercase;}
 
-  .layout { display: grid; grid-template-columns: 280px 1fr; gap: 0; height: calc(100vh - 53px); }
+/* Layout */
+.layout{display:grid;grid-template-columns:240px 1fr 300px;flex:1;overflow:hidden;gap:0;}
 
-  /* ─── Sidebar ─────────────────────────── */
-  .sidebar {
-    background: var(--panel); border-right: 1px solid var(--border);
-    padding: 20px 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px;
-  }
-  .sidebar h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 8px; }
+/* Sidebar */
+.sidebar{background:var(--panel);border-right:1px solid var(--border);padding:14px 12px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;}
+.sidebar h2{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px;}
+.field{display:flex;flex-direction:column;gap:3px;margin-bottom:6px;}
+.field label{font-size:11px;color:var(--muted);}
+.field input,.field select{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;font-size:12px;width:100%;}
+.field input:focus,.field select:focus{outline:none;border-color:var(--accent);}
+.btn{padding:8px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:700;width:100%;margin-top:4px;transition:opacity .15s;}
+.btn:hover{opacity:.8;}
+.btn-start{background:var(--accent);color:#fff;}
+.btn-stop{background:#2a1020;color:var(--red);border:1px solid var(--red);}
 
-  .field { display: flex; flex-direction: column; gap: 4px; }
-  .field label { font-size: 12px; color: var(--muted); }
-  .field input, .field select {
-    background: var(--bg); border: 1px solid var(--border); color: var(--text);
-    padding: 6px 10px; border-radius: 6px; font-size: 13px; width: 100%;
-  }
-  .field input:focus, .field select:focus { outline: none; border-color: var(--accent); }
+/* Main grid */
+.main{display:grid;grid-template-rows:auto 1fr auto;overflow:hidden;}
 
-  .btn {
-    padding: 10px 16px; border-radius: 8px; border: none; cursor: pointer;
-    font-size: 13px; font-weight: 600; letter-spacing: .3px; width: 100%;
-    transition: opacity .15s;
-  }
-  .btn:hover { opacity: .85; }
-  .btn-start  { background: var(--accent); color: #fff; }
-  .btn-stop   { background: var(--red);    color: #fff; }
+/* Stats strip */
+.stats{display:flex;border-bottom:1px solid var(--border);}
+.stat{flex:1;padding:10px 14px;border-right:1px solid var(--border);}
+.stat:last-child{border-right:none;}
+.stat .v{font-size:20px;font-weight:700;margin-top:2px;}
+.stat .l{font-size:10px;color:var(--muted);text-transform:uppercase;}
 
-  /* ─── Main ────────────────────────────── */
-  .main { overflow-y: auto; display: flex; flex-direction: column; gap: 0; }
+/* Charts area */
+.charts{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:1px;background:var(--border);overflow:hidden;}
+.chart-card{background:var(--panel);padding:12px;display:flex;flex-direction:column;}
+.chart-card h3{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:6px;flex-shrink:0;}
 
-  .stats-bar {
-    display: grid; grid-template-columns: repeat(5, 1fr);
-    border-bottom: 1px solid var(--border);
-  }
-  .stat {
-    padding: 14px 18px; border-right: 1px solid var(--border);
-  }
-  .stat:last-child { border-right: none; }
-  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
-  .stat-value { font-size: 22px; font-weight: 700; margin-top: 4px; }
-  .green { color: var(--green); }
-  .red   { color: var(--red);   }
-  .blue  { color: var(--accent);}
-  .yellow{ color: var(--yellow);}
+/* Log */
+.log{border-top:1px solid var(--border);background:var(--panel);padding:8px 12px;flex-shrink:0;}
+.log h3{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:4px;}
+#log-out{height:70px;overflow-y:auto;font-family:monospace;font-size:11px;color:var(--green);background:var(--bg);border-radius:4px;padding:6px;border:1px solid var(--border);}
 
-  .charts-grid {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
-    background: var(--border); flex: 1;
-  }
-  .chart-card {
-    background: var(--panel); padding: 16px;
-  }
-  .chart-card h3 { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+/* Brain panel */
+.brain-panel{background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.bp-section{border-bottom:1px solid var(--border);padding:10px 12px;flex-shrink:0;}
+.bp-section h3{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px;}
 
-  .log-panel {
-    border-top: 1px solid var(--border); background: var(--panel);
-    padding: 12px 16px;
-  }
-  .log-panel h3 { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
-  #log-output {
-    background: var(--bg); border-radius: 6px; padding: 10px;
-    height: 100px; overflow-y: auto; font-family: monospace; font-size: 12px;
-    color: var(--green); border: 1px solid var(--border);
-  }
+/* Signal bars */
+.signal-bars{display:flex;flex-direction:column;gap:6px;}
+.sig-row{display:flex;align-items:center;gap:8px;}
+.sig-label{width:34px;font-size:11px;font-weight:700;}
+.sig-bar-wrap{flex:1;background:var(--bg);border-radius:3px;height:14px;overflow:hidden;}
+.sig-bar{height:100%;border-radius:3px;transition:width .3s ease;}
+.sig-val{width:38px;text-align:right;font-size:11px;font-family:monospace;}
+.buy-bar{background:var(--green);}
+.hold-bar{background:var(--yellow);}
+.sell-bar{background:var(--red);}
 
-  .badge {
-    display: inline-block; padding: 2px 8px; border-radius: 4px;
-    font-size: 11px; font-weight: 700;
-  }
-  .badge-idle     { background: #1f2d45; color: var(--muted); }
-  .badge-training { background: #1d3a5f; color: var(--accent); }
-  .badge-done     { background: #14532d; color: var(--green);  }
+/* Attention timeline */
+#attn-canvas{width:100%;height:50px;border-radius:4px;}
+
+/* LSTM heatmap */
+#lstm-canvas{width:100%;height:80px;border-radius:4px;}
+
+/* Classifier neurons */
+.neuron-grid{display:flex;flex-wrap:wrap;gap:2px;}
+.neuron{width:12px;height:12px;border-radius:2px;transition:background .2s;}
+
+/* Gradient bar */
+.grad-bars{display:flex;flex-direction:column;gap:4px;}
+.grad-row{display:flex;align-items:center;gap:6px;}
+.grad-label{font-size:10px;color:var(--muted);width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.grad-bar-wrap{flex:1;background:var(--bg);border-radius:2px;height:8px;}
+.grad-bar{height:100%;border-radius:2px;background:var(--purple);transition:width .3s;}
+
+/* Scrollable brain sections */
+.brain-scroll{overflow-y:auto;flex:1;}
 </style>
 </head>
 <body>
 
+<!-- Header -->
 <header>
-  <span>⚡</span>
+  <span style="font-size:18px">⚡</span>
   <h1>NeuralForge Studio</h1>
   <span id="status-badge" class="badge badge-idle">IDLE</span>
-  <span id="gpu-info">—</span>
+  <div class="hdr-stat">
+    <div class="hdr-s"><div class="v" id="h-epoch" style="color:var(--accent)">—</div><div class="l">Epoch</div></div>
+    <div class="hdr-s"><div class="v" id="h-tacc"  style="color:var(--green)">—</div><div class="l">Train Acc</div></div>
+    <div class="hdr-s"><div class="v" id="h-vacc"  style="color:var(--purple)">—</div><div class="l">Val Acc</div></div>
+    <div class="hdr-s"><div class="v" id="h-vloss" style="color:var(--yellow)">—</div><div class="l">Val Loss</div></div>
+  </div>
 </header>
 
 <div class="layout">
 
-  <!-- ─── Sidebar ─── -->
-  <aside class="sidebar">
-    <div>
-      <h2>Data</h2>
-      <div class="field"><label>Ticker</label><input id="cfg-ticker" value="SPY"/></div>
-      <div class="field" style="margin-top:8px"><label>Period</label>
-        <select id="cfg-period">
-          <option value="1y">1 year</option>
-          <option value="2y">2 years</option>
-          <option value="5y" selected>5 years</option>
-          <option value="10y">10 years</option>
-          <option value="max">Max</option>
-        </select>
+<!-- ═══ Sidebar ═══ -->
+<aside class="sidebar">
+  <div>
+    <h2>Data</h2>
+    <div class="field"><label>Ticker</label><input id="c-ticker" value="SPY"/></div>
+    <div class="field"><label>Period</label>
+      <select id="c-period">
+        <option value="1y">1 year</option>
+        <option value="2y">2 years</option>
+        <option value="5y" selected>5 years</option>
+        <option value="10y">10 years</option>
+        <option value="max">Max</option>
+      </select>
+    </div>
+    <div class="field"><label>Window (candles)</label><input id="c-window" type="number" value="30"/></div>
+    <div class="field"><label>Forward bars</label><input id="c-forward" type="number" value="5"/></div>
+    <div class="field"><label>Signal threshold</label><input id="c-thresh" type="number" step="0.001" value="0.015"/></div>
+  </div>
+  <div>
+    <h2>Model</h2>
+    <div class="field"><label>Hidden units</label><input id="c-hidden" type="number" value="128"/></div>
+    <div class="field"><label>LSTM layers</label><input id="c-layers" type="number" value="2"/></div>
+  </div>
+  <div>
+    <h2>Training</h2>
+    <div class="field"><label>Epochs</label><input id="c-epochs" type="number" value="30"/></div>
+    <div class="field"><label>Learning rate</label><input id="c-lr" type="number" step="0.0001" value="0.0003"/></div>
+    <div class="field"><label>Batch size</label><input id="c-batch" type="number" value="64"/></div>
+    <div class="field"><label>Brain probe every N batches</label><input id="c-probe" type="number" value="5"/></div>
+  </div>
+  <button class="btn btn-start" onclick="startTraining()">&#9654; Train Brain</button>
+  <button class="btn btn-stop"  onclick="stopTraining()">&#9632; Stop</button>
+</aside>
+
+<!-- ═══ Main ═══ -->
+<main class="main">
+  <div class="stats">
+    <div class="stat"><div class="l">Batch Loss</div><div class="v" id="s-bloss" style="color:var(--yellow)">—</div></div>
+    <div class="stat"><div class="l">Train Loss</div><div class="v" id="s-tloss">—</div></div>
+    <div class="stat"><div class="l">Val Loss</div><div class="v" id="s-vloss">—</div></div>
+    <div class="stat"><div class="l">Train Acc</div><div class="v" id="s-tacc" style="color:var(--green)">—</div></div>
+    <div class="stat"><div class="l">Val Acc</div><div class="v" id="s-vacc" style="color:var(--purple)">—</div></div>
+  </div>
+
+  <div class="charts">
+    <div class="chart-card"><h3>Loss Curve</h3><div id="ch-loss" style="flex:1"></div></div>
+    <div class="chart-card"><h3>Accuracy</h3><div id="ch-acc" style="flex:1"></div></div>
+    <div class="chart-card"><h3>Learning Rate Schedule</h3><div id="ch-lr" style="flex:1"></div></div>
+    <div class="chart-card"><h3>Confusion Matrix</h3><div id="ch-cm" style="flex:1"></div></div>
+  </div>
+
+  <div class="log">
+    <h3>Console</h3>
+    <div id="log-out"></div>
+  </div>
+</main>
+
+<!-- ═══ Brain Panel ═══ -->
+<aside class="brain-panel">
+  <div class="bp-section">
+    <h3>Signal Output</h3>
+    <div class="signal-bars">
+      <div class="sig-row">
+        <div class="sig-label" style="color:var(--green)">BUY</div>
+        <div class="sig-bar-wrap"><div class="sig-bar buy-bar" id="bar-buy" style="width:33%"></div></div>
+        <div class="sig-val" id="val-buy">33%</div>
       </div>
-      <div class="field" style="margin-top:8px"><label>Window (candles)</label><input id="cfg-window" type="number" value="30"/></div>
-      <div class="field" style="margin-top:8px"><label>Forward bars (label)</label><input id="cfg-forward" type="number" value="5"/></div>
-      <div class="field" style="margin-top:8px"><label>Signal threshold %</label><input id="cfg-thresh" type="number" step="0.001" value="0.015"/></div>
+      <div class="sig-row">
+        <div class="sig-label" style="color:var(--yellow)">HOLD</div>
+        <div class="sig-bar-wrap"><div class="sig-bar hold-bar" id="bar-hold" style="width:34%"></div></div>
+        <div class="sig-val" id="val-hold">34%</div>
+      </div>
+      <div class="sig-row">
+        <div class="sig-label" style="color:var(--red)">SELL</div>
+        <div class="sig-bar-wrap"><div class="sig-bar sell-bar" id="bar-sell" style="width:33%"></div></div>
+        <div class="sig-val" id="val-sell">33%</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="brain-scroll">
+    <div class="bp-section">
+      <h3>Attention — Which Candles Matter</h3>
+      <canvas id="attn-canvas"></canvas>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:2px;">
+        <span>oldest</span><span>newest</span>
+      </div>
     </div>
 
-    <div>
-      <h2>Model</h2>
-      <div class="field"><label>Hidden size</label><input id="cfg-hidden" type="number" value="128"/></div>
-      <div class="field" style="margin-top:8px"><label>LSTM layers</label><input id="cfg-layers" type="number" value="2"/></div>
+    <div class="bp-section">
+      <h3>LSTM Hidden State (32 units x time)</h3>
+      <canvas id="lstm-canvas"></canvas>
     </div>
 
-    <div>
-      <h2>Training</h2>
-      <div class="field"><label>Epochs</label><input id="cfg-epochs" type="number" value="30"/></div>
-      <div class="field" style="margin-top:8px"><label>Learning rate</label><input id="cfg-lr" type="number" step="0.0001" value="0.0003"/></div>
-      <div class="field" style="margin-top:8px"><label>Batch size</label><input id="cfg-batch" type="number" value="64"/></div>
+    <div class="bp-section">
+      <h3>Classifier Neurons</h3>
+      <div id="neuron-layers"></div>
     </div>
 
-    <button class="btn btn-start" onclick="startTraining()">▶ Train Brain</button>
-    <button class="btn btn-stop"  onclick="stopTraining()">⏹ Stop</button>
-  </aside>
-
-  <!-- ─── Main ─── -->
-  <main class="main">
-
-    <!-- Stats bar -->
-    <div class="stats-bar">
-      <div class="stat"><div class="stat-label">Epoch</div><div class="stat-value blue" id="s-epoch">—</div></div>
-      <div class="stat"><div class="stat-label">Train Loss</div><div class="stat-value" id="s-tloss">—</div></div>
-      <div class="stat"><div class="stat-label">Val Loss</div><div class="stat-value" id="s-vloss">—</div></div>
-      <div class="stat"><div class="stat-label">Train Acc</div><div class="stat-value green" id="s-tacc">—</div></div>
-      <div class="stat"><div class="stat-label">Val Acc</div><div class="stat-value green" id="s-vacc">—</div></div>
+    <div class="bp-section" style="border-bottom:none">
+      <h3>Gradient Flow</h3>
+      <div class="grad-bars" id="grad-bars"></div>
     </div>
+  </div>
+</aside>
 
-    <!-- Charts -->
-    <div class="charts-grid">
-      <div class="chart-card"><h3>Loss Curve</h3><div id="chart-loss" style="height:240px"></div></div>
-      <div class="chart-card"><h3>Accuracy</h3><div id="chart-acc"  style="height:240px"></div></div>
-      <div class="chart-card"><h3>Learning Rate</h3><div id="chart-lr"   style="height:200px"></div></div>
-      <div class="chart-card"><h3>Confusion Matrix</h3><div id="chart-cm"   style="height:200px"></div></div>
-    </div>
-
-    <!-- Log -->
-    <div class="log-panel">
-      <h3>Console</h3>
-      <div id="log-output"></div>
-    </div>
-
-  </main>
-</div>
+</div><!-- /layout -->
 
 <script>
 const socket = io();
 
-// ─── History buffers ──────────────────────────────────────
+// ─── Chart data buffers ───────────────────────────────────
 let epochs=[], tLoss=[], vLoss=[], tAcc=[], vAcc=[], lrs=[];
 
-// ─── Plotly layout helper ─────────────────────────────────
-const layout = (title, yaxis) => ({
-  paper_bgcolor: 'rgba(0,0,0,0)',
-  plot_bgcolor:  'rgba(0,0,0,0)',
-  font: { color: '#e2e8f0', size: 11 },
-  margin: { l:40, r:10, t:10, b:30 },
-  xaxis: { gridcolor:'#1f2d45', zeroline:false },
-  yaxis: { gridcolor:'#1f2d45', zeroline:false, ...yaxis },
-  showlegend: true,
-  legend: { x:0.01, y:0.99, bgcolor:'rgba(0,0,0,0)' },
+const PLY = (bgcolor='rgba(0,0,0,0)') => ({
+  paper_bgcolor: bgcolor, plot_bgcolor: bgcolor,
+  font:{color:'#dde4f0',size:10},
+  margin:{l:36,r:8,t:4,b:28},
+  xaxis:{gridcolor:'#1a2540',zeroline:false,title:'Epoch'},
+  yaxis:{gridcolor:'#1a2540',zeroline:false},
+  showlegend:true,
+  legend:{x:.01,y:.99,bgcolor:'rgba(0,0,0,0)',font:{size:10}},
 });
+const CFG = {responsive:true,displayModeBar:false};
 
-Plotly.newPlot('chart-loss', [
-  { x:[], y:[], name:'Train', line:{color:'#3b82f6'} },
-  { x:[], y:[], name:'Val',   line:{color:'#f97316', dash:'dash'} },
-], layout(), {responsive:true, displayModeBar:false});
+Plotly.newPlot('ch-loss',[
+  {x:[],y:[],name:'Train',line:{color:'#3b82f6',width:2}},
+  {x:[],y:[],name:'Val',  line:{color:'#f97316',width:2,dash:'dash'}},
+],PLY(),CFG);
 
-Plotly.newPlot('chart-acc', [
-  { x:[], y:[], name:'Train', line:{color:'#22c55e'} },
-  { x:[], y:[], name:'Val',   line:{color:'#a78bfa', dash:'dash'} },
-], layout('', {tickformat:'.0%'}), {responsive:true, displayModeBar:false});
+Plotly.newPlot('ch-acc',[
+  {x:[],y:[],name:'Train',line:{color:'#22c55e',width:2}},
+  {x:[],y:[],name:'Val',  line:{color:'#a78bfa',width:2,dash:'dash'}},
+],{...PLY(), yaxis:{gridcolor:'#1a2540',zeroline:false,tickformat:'.0%'}},CFG);
 
-Plotly.newPlot('chart-lr', [
-  { x:[], y:[], name:'LR', line:{color:'#eab308'}, fill:'tozeroy', fillcolor:'rgba(234,179,8,.15)' },
-], layout('', {exponentformat:'e'}), {responsive:true, displayModeBar:false});
+Plotly.newPlot('ch-lr',[
+  {x:[],y:[],name:'LR',line:{color:'#f59e0b',width:2},fill:'tozeroy',fillcolor:'rgba(245,158,11,.1)'},
+],{...PLY(),yaxis:{gridcolor:'#1a2540',zeroline:false,exponentformat:'e'}},CFG);
 
 // ─── Socket events ────────────────────────────────────────
+
 socket.on('epoch_metrics', m => {
   epochs.push(m.epoch); tLoss.push(m.train_loss); vLoss.push(m.val_loss);
   tAcc.push(m.train_acc); vAcc.push(m.val_acc); lrs.push(m.lr);
 
-  document.getElementById('s-epoch').textContent = m.epoch;
+  Plotly.update('ch-loss',{x:[epochs,epochs],y:[tLoss,vLoss]});
+  Plotly.update('ch-acc', {x:[epochs,epochs],y:[tAcc, vAcc]});
+  Plotly.update('ch-lr',  {x:[epochs.map((_,i)=>i+1)],y:[lrs]});
+
+  document.getElementById('h-epoch').textContent = m.epoch;
+  document.getElementById('h-tacc').textContent  = pct(m.train_acc);
+  document.getElementById('h-vacc').textContent  = pct(m.val_acc);
+  document.getElementById('h-vloss').textContent = m.val_loss.toFixed(4);
   document.getElementById('s-tloss').textContent = m.train_loss.toFixed(4);
   document.getElementById('s-vloss').textContent = m.val_loss.toFixed(4);
-  document.getElementById('s-tacc').textContent  = (m.train_acc*100).toFixed(1)+'%';
-  document.getElementById('s-vacc').textContent  = (m.val_acc*100).toFixed(1)+'%';
+  document.getElementById('s-tacc').textContent  = pct(m.train_acc);
+  document.getElementById('s-vacc').textContent  = pct(m.val_acc);
+});
 
-  Plotly.update('chart-loss', {'x':[epochs,epochs], 'y':[tLoss,vLoss]});
-  Plotly.update('chart-acc',  {'x':[epochs,epochs], 'y':[tAcc, vAcc]});
-  Plotly.update('chart-lr',   {'x':[lrs.map((_,i)=>i+1)], 'y':[lrs]});
+socket.on('batch_metrics', m => {
+  document.getElementById('s-bloss').textContent = m.batch_loss.toFixed(4);
+  if (m.signal_probs) updateSignals(m.signal_probs);
+});
+
+socket.on('brain_state', snap => {
+  if (snap.attention)     drawAttention(snap.attention);
+  if (snap.lstm_heatmap)  drawLSTM(snap.lstm_heatmap);
+  if (snap.classifier)    drawClassifier(snap.classifier);
+  if (snap.grad_magnitudes) drawGradients(snap.grad_magnitudes);
 });
 
 socket.on('training_complete', data => {
-  document.getElementById('status-badge').className = 'badge badge-done';
-  document.getElementById('status-badge').textContent = 'DONE';
-  log('Training complete!');
-
-  const cm = data.confusion_matrix;
-  const labels = ['BUY','HOLD','SELL'];
-  Plotly.newPlot('chart-cm', [{
-    z: cm, x: labels, y: labels,
-    type:'heatmap', colorscale:'Blues',
-    text: cm.map(row=>row.map(v=>v.toString())),
-    texttemplate:'%{text}', showscale:false,
-  }], {
-    paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
-    font:{color:'#e2e8f0',size:11},
-    margin:{l:50,r:10,t:10,b:40},
-    xaxis:{title:'Predicted'}, yaxis:{title:'Actual', autorange:'reversed'},
-  }, {responsive:true, displayModeBar:false});
-
+  setBadge('done','DONE');
+  drawConfusion(data.confusion_matrix);
   const r = data.report;
-  ['BUY','HOLD','SELL'].forEach(cls => {
-    const c = r[cls];
-    if (c) log(`${cls}: precision=${c.precision.toFixed(3)} recall=${c.recall.toFixed(3)} f1=${c['f1-score'].toFixed(3)}`);
+  ['BUY','HOLD','SELL'].forEach(c => {
+    if(r[c]) log(`${c}: P=${r[c].precision.toFixed(3)} R=${r[c].recall.toFixed(3)} F1=${r[c]['f1-score'].toFixed(3)}`);
   });
 });
 
 socket.on('log',   d => log(d.msg));
-socket.on('error', d => log('ERROR: ' + d.msg));
+socket.on('error', d => log('ERROR: '+d.msg));
 
-function log(msg) {
-  const el = document.getElementById('log-output');
-  el.textContent += '\n> ' + msg;
-  el.scrollTop = el.scrollHeight;
+// ─── Signal bars ─────────────────────────────────────────
+function updateSignals(p){
+  const total = p.BUY + p.HOLD + p.SELL || 1;
+  set('buy',  p.BUY/total);
+  set('hold', p.HOLD/total);
+  set('sell', p.SELL/total);
+  function set(id, frac){
+    const pct = (frac*100).toFixed(1)+'%';
+    document.getElementById('bar-'+id).style.width = pct;
+    document.getElementById('val-'+id).textContent  = pct;
+  }
 }
 
-// ─── Controls ─────────────────────────────────────────────
-function startTraining() {
-  epochs=[]; tLoss=[]; vLoss=[]; tAcc=[]; vAcc=[]; lrs=[];
-  Plotly.update('chart-loss', {'x':[[],[]], 'y':[[],[]]});
-  Plotly.update('chart-acc',  {'x':[[],[]], 'y':[[],[]]});
-  Plotly.update('chart-lr',   {'x':[[]], 'y':[[]]});
-
-  document.getElementById('status-badge').className = 'badge badge-training';
-  document.getElementById('status-badge').textContent = 'TRAINING';
-
-  socket.emit('start_training', {
-    ticker:  document.getElementById('cfg-ticker').value,
-    period:  document.getElementById('cfg-period').value,
-    window:  document.getElementById('cfg-window').value,
-    forward: document.getElementById('cfg-forward').value,
-    thresh:  document.getElementById('cfg-thresh').value,
-    epochs:  document.getElementById('cfg-epochs').value,
-    lr:      document.getElementById('cfg-lr').value,
-    batch:   document.getElementById('cfg-batch').value,
-    hidden:  document.getElementById('cfg-hidden').value,
-    layers:  document.getElementById('cfg-layers').value,
+// ─── Attention heatmap ───────────────────────────────────
+function drawAttention(weights){
+  const canvas = document.getElementById('attn-canvas');
+  const W = canvas.offsetWidth, H = 50;
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+  const n = weights.length;
+  const cellW = W / n;
+  const max = Math.max(...weights, 1e-9);
+  weights.forEach((w, i) => {
+    const intensity = w / max;
+    const r = Math.round(intensity * 59 + (1-intensity)*26);
+    const g = Math.round(intensity * 130+ (1-intensity)*37);
+    const b = Math.round(intensity * 246+ (1-intensity)*64);
+    ctx.fillStyle = `rgb(${r},${g},${b})`;
+    ctx.fillRect(Math.floor(i*cellW), 0, Math.ceil(cellW), H);
+  });
+  // Highlight top 3 candles
+  const sorted = [...weights].map((v,i)=>({v,i})).sort((a,b)=>b.v-a.v).slice(0,3);
+  sorted.forEach(({i}) => {
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(Math.floor(i*cellW)+1, 1, Math.ceil(cellW)-2, H-2);
   });
 }
 
-function stopTraining() {
-  socket.emit('stop_training');
+// ─── LSTM heatmap ────────────────────────────────────────
+function drawLSTM(heatmap){
+  // heatmap: (units, timesteps)
+  const canvas = document.getElementById('lstm-canvas');
+  const W = canvas.offsetWidth, H = 80;
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+  const units = heatmap.length;
+  const time  = heatmap[0]?.length || 1;
+  const cellW = W / time;
+  const cellH = H / units;
+  let globalMax = 0, globalMin = 0;
+  heatmap.forEach(row => row.forEach(v => {
+    if(v > globalMax) globalMax = v;
+    if(v < globalMin) globalMin = v;
+  }));
+  const range = Math.max(globalMax - globalMin, 1e-9);
+  heatmap.forEach((row, ui) => {
+    row.forEach((val, ti) => {
+      const norm = (val - globalMin) / range;
+      // Diverging: blue (neg) -> dark (zero) -> orange (pos)
+      let r,g,b;
+      if(norm < .5){
+        const t = norm * 2;
+        r = Math.round(t*30);
+        g = Math.round(t*100);
+        b = Math.round(255 - t*100);
+      } else {
+        const t = (norm-.5)*2;
+        r = Math.round(30 + t*220);
+        g = Math.round(100 + t*58);
+        b = Math.round(155 - t*140);
+      }
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(Math.floor(ti*cellW), Math.floor(ui*cellH), Math.ceil(cellW), Math.ceil(cellH));
+    });
+  });
 }
 
-// ─── GPU info ─────────────────────────────────────────────
-fetch('/api/status').then(r=>r.json()).then(d => {
-  if (d.history && d.history.length) {
-    d.history.forEach(m => {
-      epochs.push(m.epoch); tLoss.push(m.train_loss); vLoss.push(m.val_loss);
-      tAcc.push(m.train_acc); vAcc.push(m.val_acc); lrs.push(m.lr);
+// ─── Classifier neurons ──────────────────────────────────
+function drawClassifier(layers){
+  const container = document.getElementById('neuron-layers');
+  container.innerHTML = '';
+  layers.forEach(layer => {
+    const label = document.createElement('div');
+    label.style.cssText = 'font-size:10px;color:var(--muted);margin:6px 0 3px';
+    label.textContent = layer.name;
+    container.appendChild(label);
+
+    const grid = document.createElement('div');
+    grid.className = 'neuron-grid';
+    const acts = layer.activations;
+    const maxAct = Math.max(...acts.map(Math.abs), 1e-9);
+    acts.forEach(v => {
+      const el = document.createElement('div');
+      el.className = 'neuron';
+      const norm = v / maxAct;
+      if(norm > 0){
+        const t = norm;
+        el.style.background = `rgba(34,197,94,${0.15 + t*.85})`;
+      } else {
+        const t = -norm;
+        el.style.background = `rgba(239,68,68,${0.15 + t*.85})`;
+      }
+      grid.appendChild(el);
     });
-    Plotly.update('chart-loss', {'x':[epochs,epochs], 'y':[tLoss,vLoss]});
-    Plotly.update('chart-acc',  {'x':[epochs,epochs], 'y':[tAcc, vAcc]});
-    Plotly.update('chart-lr',   {'x':[lrs.map((_,i)=>i+1)], 'y':[lrs]});
-    const last = d.history[d.history.length-1];
-    document.getElementById('s-epoch').textContent = last.epoch;
-    document.getElementById('s-vacc').textContent  = (last.val_acc*100).toFixed(1)+'%';
+    container.appendChild(grid);
+  });
+}
+
+// ─── Gradient flow ───────────────────────────────────────
+let gradMax = {};
+function drawGradients(mags){
+  const container = document.getElementById('grad-bars');
+  container.innerHTML = '';
+  Object.entries(mags).forEach(([key, val]) => {
+    gradMax[key] = Math.max(gradMax[key]||0, val);
+    const pct = gradMax[key] > 0 ? (val/gradMax[key]*100).toFixed(1)+'%' : '0%';
+    const row = document.createElement('div');
+    row.className = 'grad-row';
+    row.innerHTML = `
+      <div class="grad-label">${key.replace('grad_classifier_','L')}</div>
+      <div class="grad-bar-wrap"><div class="grad-bar" style="width:${pct}"></div></div>
+      <div style="font-size:10px;color:var(--muted);font-family:monospace;width:42px;text-align:right">${val.toExponential(1)}</div>
+    `;
+    container.appendChild(row);
+  });
+}
+
+// ─── Confusion matrix ────────────────────────────────────
+function drawConfusion(cm){
+  const labels = ['BUY','HOLD','SELL'];
+  Plotly.newPlot('ch-cm',[{
+    z:cm, x:labels, y:labels, type:'heatmap',
+    colorscale:[[0,'#0e1320'],[0.5,'#1a3060'],[1,'#3b82f6']],
+    text:cm.map(r=>r.map(v=>String(v))),
+    texttemplate:'%{text}', showscale:false, hoverinfo:'none',
+  }],{
+    paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
+    font:{color:'#dde4f0',size:11},
+    margin:{l:48,r:8,t:4,b:36},
+    xaxis:{title:'Predicted',tickfont:{size:11}},
+    yaxis:{title:'Actual',tickfont:{size:11},autorange:'reversed'},
+  },CFG);
+}
+
+// ─── Helpers ─────────────────────────────────────────────
+function pct(v){ return (v*100).toFixed(1)+'%'; }
+function log(msg){
+  const el = document.getElementById('log-out');
+  el.textContent += '\n> '+msg;
+  el.scrollTop = el.scrollHeight;
+}
+function setBadge(state, text){
+  const el = document.getElementById('status-badge');
+  el.className = 'badge badge-'+state;
+  el.textContent = text;
+}
+
+function startTraining(){
+  epochs=[]; tLoss=[]; vLoss=[]; tAcc=[]; vAcc=[]; lrs=[];
+  gradMax={};
+  Plotly.update('ch-loss',{x:[[],[]],y:[[],[]]});
+  Plotly.update('ch-acc', {x:[[],[]],y:[[],[]]});
+  Plotly.update('ch-lr',  {x:[[]],  y:[[]]});
+  setBadge('training','TRAINING');
+  socket.emit('start_training',{
+    ticker:  document.getElementById('c-ticker').value,
+    period:  document.getElementById('c-period').value,
+    window:  document.getElementById('c-window').value,
+    forward: document.getElementById('c-forward').value,
+    thresh:  document.getElementById('c-thresh').value,
+    epochs:  document.getElementById('c-epochs').value,
+    lr:      document.getElementById('c-lr').value,
+    batch:   document.getElementById('c-batch').value,
+    hidden:  document.getElementById('c-hidden').value,
+    layers:  document.getElementById('c-layers').value,
+    probe_every: document.getElementById('c-probe').value,
+  });
+}
+
+function stopTraining(){
+  socket.emit('stop_training');
+  setBadge('idle','IDLE');
+}
+
+// Load history on page open
+fetch('/api/status').then(r=>r.json()).then(d=>{
+  if(d.history&&d.history.length){
+    d.history.forEach(m=>{
+      epochs.push(m.epoch);tLoss.push(m.train_loss);vLoss.push(m.val_loss);
+      tAcc.push(m.train_acc);vAcc.push(m.val_acc);lrs.push(m.lr);
+    });
+    Plotly.update('ch-loss',{x:[epochs,epochs],y:[tLoss,vLoss]});
+    Plotly.update('ch-acc', {x:[epochs,epochs],y:[tAcc, vAcc]});
+    Plotly.update('ch-lr',  {x:[epochs.map((_,i)=>i+1)],y:[lrs]});
+    const last=d.history[d.history.length-1];
+    document.getElementById('h-epoch').textContent=last.epoch;
+    document.getElementById('h-vacc').textContent=pct(last.val_acc);
   }
+  if(d.training) setBadge('training','TRAINING');
 });
 </script>
 </body>
