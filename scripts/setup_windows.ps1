@@ -2,7 +2,7 @@
 # NeuralForge Windows 11 Setup Script
 # Optimized for: RTX 5090 | i9-284K | 128GB DDR5 | CUDA 12.x
 # Requires: Python 3.12
-# Run from the neural-forge root directory
+# Run from the neural-forge ROOT directory (not from scripts/)
 # ============================================================
 
 $ErrorActionPreference = "Stop"
@@ -40,8 +40,18 @@ Write-Host "  [2/6] Installing PyTorch 2.3.1 + CUDA 12.1..." -ForegroundColor Ye
 Write-Host "        This is a large download, please wait." -ForegroundColor DarkGray
 pip install torch==2.3.1 torchvision==0.18.1 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cu121
 
-$torchCheck = python -c "import torch; cuda = torch.cuda.is_available(); gpu = torch.cuda.get_device_name(0) if cuda else 'N/A'; print('torch', torch.__version__, '| CUDA:', cuda, '| GPU:', gpu)" 2>&1
-Write-Host "  OK - $torchCheck" -ForegroundColor Green
+# Verify torch - suppress stderr warnings, only show stdout
+Write-Host ""
+Write-Host "  Verifying PyTorch..." -ForegroundColor DarkGray
+$torchVer  = python -c "import torch; print(torch.__version__)" 2>$null
+$cudaAvail = python -c "import torch; print(torch.cuda.is_available())" 2>$null
+$cudaVer   = python -c "import torch; print(torch.version.cuda)" 2>$null
+$gpuName   = python -c "import torch; print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'No GPU detected')" 2>$null
+
+Write-Host "  torch version : $torchVer" -ForegroundColor Green
+Write-Host "  CUDA available: $cudaAvail" -ForegroundColor Green
+Write-Host "  CUDA version  : $cudaVer" -ForegroundColor Green
+Write-Host "  GPU           : $gpuName" -ForegroundColor Green
 
 # Step 3
 Write-Host ""
@@ -63,12 +73,38 @@ Write-Host ""
 Write-Host "  [6/6] Installing remaining dependencies..." -ForegroundColor Yellow
 pip install anthropic flask flask-socketio flask-cors eventlet plotly matplotlib seaborn networkx pynvml psutil GPUtil numpy pandas scikit-learn tqdm rich click pyyaml python-dotenv requests aiohttp jupyter ipywidgets ipykernel pytest black ruff
 
-# Done
+# Final verification
+Write-Host ""
+Write-Host "  ============================================" -ForegroundColor DarkGray
+Write-Host "  Running final checks..." -ForegroundColor Yellow
+Write-Host ""
+
+$checks = @(
+    @{ name = "torch";         cmd = "import torch; print(torch.__version__)" },
+    @{ name = "torch-geometric"; cmd = "import torch_geometric; print(torch_geometric.__version__)" },
+    @{ name = "onnx";          cmd = "import onnx; print(onnx.__version__)" },
+    @{ name = "onnxruntime";   cmd = "import onnxruntime; print(onnxruntime.__version__)" },
+    @{ name = "flask";         cmd = "import flask; print(flask.__version__)" },
+    @{ name = "anthropic";     cmd = "import anthropic; print(anthropic.__version__)" }
+)
+
+foreach ($chk in $checks) {
+    $result = python -c $chk.cmd 2>$null
+    if ($result) {
+        Write-Host ("  [OK] {0,-20} {1}" -f $chk.name, $result) -ForegroundColor Green
+    } else {
+        Write-Host ("  [!!] {0,-20} FAILED" -f $chk.name) -ForegroundColor Red
+    }
+}
+
 Write-Host ""
 Write-Host "  ============================================" -ForegroundColor DarkGray
 Write-Host "  Setup complete!" -ForegroundColor Green
 Write-Host ""
-Write-Host "  To launch NeuralForge Studio:" -ForegroundColor Cyan
+Write-Host "  Every future session just run:" -ForegroundColor DarkGray
+Write-Host "    .\.venv\Scripts\Activate.ps1" -ForegroundColor White
+Write-Host ""
+Write-Host "  Launch NeuralForge Studio:" -ForegroundColor Cyan
 Write-Host "    python -m neural_forge.ui.app" -ForegroundColor White
 Write-Host ""
 Write-Host "  Then open: http://localhost:8080" -ForegroundColor Cyan
