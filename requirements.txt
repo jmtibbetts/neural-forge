@@ -12,6 +12,8 @@
 #   4. pip install -r requirements.txt
 # ============================================================
 
+yfinance>=0.2.40
+
 # --- Core Deep Learning ---
 # Install these FIRST via the index URL above (CUDA wheels):
 # torch>=2.3.0
