@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>⚡ NeuralForge Studio</title>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <!-- Plotly -->
+  <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+  <!-- Socket.IO -->
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+  <style>
+    /* ═══════════════════════════════════════════
+       NEURAL FORGE — FUTURISTIC DARK THEME
+    ═══════════════════════════════════════════ */
+
+    :root {
+      --nf-bg:        #050810;
+      --nf-surface:   #0a0f1e;
+      --nf-card:      #0d1428;
+      --nf-border:    #1a2544;
+      --nf-cyan:      #00f5ff;
+      --nf-purple:    #8b5cf6;
+      --nf-pink:      #f472b6;
+      --nf-green:     #00ff9d;
+      --nf-orange:    #ff6b35;
+      --nf-text:      #c9d4f0;
+      --nf-muted:     #4a5680;
+      --nf-glow-cyan: 0 0 20px rgba(0, 245, 255, 0.4);
+      --nf-glow-purple: 0 0 20px rgba(139, 92, 246, 0.4);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      background: var(--nf-bg);
+      color: var(--nf-text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Animated grid background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,245,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,245,255,0.03) 1px, transparent 1px);
+      background-size: 50px 50px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Floating glow orbs */
+    body::after {
+      content: '';
+      position: fixed;
+      width: 600px; height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 70%);
+      top: -200px; right: -200px;
+      pointer-events: none;
+      animation: orb-drift 15s ease-in-out infinite alternate;
+    }
+
+    @keyframes orb-drift {
+      from { transform: translate(0,0) scale(1); }
+      to   { transform: translate(-50px, 80px) scale(1.1); }
+    }
+
+    /* ─── NAVBAR ─── */
+    .nf-navbar {
+      background: rgba(5,8,16,0.9);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--nf-border);
+      padding: 12px 24px;
+      position: sticky; top: 0; z-index: 1000;
+    }
+
+    .nf-logo {
+      font-family: 'Orbitron', monospace;
+      font-weight: 900;
+      font-size: 1.4rem;
+      background: linear-gradient(135deg, var(--nf-cyan), var(--nf-purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: 2px;
+    }
+
+    .nf-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      background: linear-gradient(135deg, var(--nf-cyan), var(--nf-purple));
+      color: #000;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 600;
+      letter-spacing: 1px;
+    }
+
+    /* ─── SIDEBAR ─── */
+    .nf-sidebar {
+      width: 220px;
+      min-height: calc(100vh - 65px);
+      background: var(--nf-surface);
+      border-right: 1px solid var(--nf-border);
+      padding: 20px 0;
+      position: fixed;
+      top: 65px; left: 0;
+      z-index: 100;
+    }
+
+    .nf-nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 20px;
+      color: var(--nf-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.85rem;
+      font-weight: 500;
+      border-left: 3px solid transparent;
+      user-select: none;
+    }
+
+    .nf-nav-item:hover {
+      color: var(--nf-cyan);
+      background: rgba(0,245,255,0.05);
+      border-left-color: rgba(0,245,255,0.3);
+    }
+
+    .nf-nav-item.active {
+      color: var(--nf-cyan);
+      background: rgba(0,245,255,0.08);
+      border-left-color: var(--nf-cyan);
+    }
+
+    .nf-nav-item i { font-size: 1.1rem; width: 20px; }
+
+    /* ─── MAIN CONTENT ─── */
+    .nf-main {
+      margin-left: 220px;
+      padding: 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ─── CARDS ─── */
+    .nf-card {
+      background: var(--nf-card);
+      border: 1px solid var(--nf-border);
+      border-radius: 12px;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .nf-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(0,245,255,0.02) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .nf-card-title {
+      font-family: 'Orbitron', monospace;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--nf-muted);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 12px;
+    }
+
+    /* ─── STAT WIDGETS ─── */
+    .nf-stat {
+      text-align: center;
+    }
+
+    .nf-stat-value {
+      font-family: 'Orbitron', monospace;
+      font-size: 1.8rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .nf-stat-label {
+      font-size: 0.7rem;
+      color: var(--nf-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 4px;
+    }
+
+    .cyan  { color: var(--nf-cyan); }
+    .purple { color: var(--nf-purple); }
+    .green  { color: var(--nf-green); }
+    .pink   { color: var(--nf-pink); }
+    .orange { color: var(--nf-orange); }
+
+    /* ─── GLOW PROGRESS ─── */
+    .nf-progress {
+      height: 6px;
+      border-radius: 10px;
+      background: var(--nf-border);
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .nf-progress-bar {
+      height: 100%;
+      border-radius: 10px;
+      background: linear-gradient(90deg, var(--nf-cyan), var(--nf-purple));
+      box-shadow: var(--nf-glow-cyan);
+      transition: width 0.5s ease;
+    }
+
+    /* ─── BUTTONS ─── */
+    .btn-nf-primary {
+      background: linear-gradient(135deg, var(--nf-cyan), var(--nf-purple));
+      border: none;
+      color: #000;
+      font-weight: 700;
+      font-family: 'Orbitron', monospace;
+      font-size: 0.75rem;
+      letter-spacing: 1px;
+      padding: 10px 24px;
+      border-radius: 8px;
+      box-shadow: var(--nf-glow-cyan);
+      transition: all 0.2s;
+    }
+
+    .btn-nf-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 0 30px rgba(0,245,255,0.6);
+      color: #000;
+    }
+
+    .btn-nf-danger {
+      background: transparent;
+      border: 1px solid var(--nf-orange);
+      color: var(--nf-orange);
+      font-weight: 600;
+      font-size: 0.8rem;
+      padding: 8px 20px;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+
+    .btn-nf-danger:hover {
+      background: rgba(255,107,53,0.15);
+      box-shadow: 0 0 20px rgba(255,107,53,0.3);
+    }
+
+    .btn-nf-ghost {
+      background: transparent;
+      border: 1px solid var(--nf-border);
+      color: var(--nf-text);
+      font-size: 0.8rem;
+      padding: 8px 16px;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+
+    .btn-nf-ghost:hover {
+      border-color: var(--nf-cyan);
+      color: var(--nf-cyan);
+    }
+
+    /* ─── FORM CONTROLS ─── */
+    .nf-input, .nf-select {
+      background: var(--nf-surface);
+      border: 1px solid var(--nf-border);
+      color: var(--nf-text);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      width: 100%;
+      font-family: 'JetBrains Mono', monospace;
+      transition: border-color 0.2s;
+    }
+
+    .nf-input:focus, .nf-select:focus {
+      outline: none;
+      border-color: var(--nf-cyan);
+      box-shadow: 0 0 0 3px rgba(0,245,255,0.1);
+    }
+
+    .nf-label {
+      font-size: 0.75rem;
+      color: var(--nf-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    /* ─── STATUS DOT ─── */
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+    }
+
+    .status-dot.active {
+      background: var(--nf-green);
+      box-shadow: 0 0 8px var(--nf-green);
+      animation: pulse-dot 1.5s infinite;
+    }
+
+    .status-dot.idle { background: var(--nf-muted); }
+    .status-dot.error { background: var(--nf-orange); }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* ─── GPU GAUGE ─── */
+    .gpu-gauge-wrap {
+      position: relative;
+      width: 100%;
+      height: 8px;
+      background: var(--nf-border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .gpu-gauge-fill {
+      height: 100%;
+      border-radius: 10px;
+      transition: width 0.8s ease, background 0.3s;
+    }
+
+    /* ─── TERMINAL / LOG ─── */
+    .nf-terminal {
+      background: #000;
+      border: 1px solid var(--nf-border);
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      line-height: 1.7;
+      max-height: 260px;
+      overflow-y: auto;
+      color: var(--nf-green);
+    }
+
+    .nf-terminal::-webkit-scrollbar { width: 4px; }
+    .nf-terminal::-webkit-scrollbar-thumb { background: var(--nf-border); border-radius: 4px; }
+
+    .log-info  { color: var(--nf-cyan); }
+    .log-warn  { color: var(--nf-orange); }
+    .log-err   { color: #ff4444; }
+    .log-ok    { color: var(--nf-green); }
+    .log-dim   { color: var(--nf-muted); }
+
+    /* ─── CHAT ─── */
+    .nf-chat-box {
+      background: #000;
+      border: 1px solid var(--nf-border);
+      border-radius: 8px;
+      padding: 16px;
+      min-height: 280px;
+      max-height: 400px;
+      overflow-y: auto;
+      font-size: 0.85rem;
+    }
+
+    .chat-msg-user {
+      text-align: right;
+      margin-bottom: 12px;
+    }
+
+    .chat-msg-user span {
+      background: linear-gradient(135deg, var(--nf-purple), var(--nf-cyan));
+      color: #000;
+      padding: 8px 14px;
+      border-radius: 16px 16px 4px 16px;
+      display: inline-block;
+      max-width: 80%;
+      font-weight: 500;
+    }
+
+    .chat-msg-ai {
+      margin-bottom: 12px;
+    }
+
+    .chat-msg-ai span {
+      background: var(--nf-surface);
+      border: 1px solid var(--nf-border);
+      color: var(--nf-text);
+      padding: 8px 14px;
+      border-radius: 16px 16px 16px 4px;
+      display: inline-block;
+      max-width: 85%;
+    }
+
+    /* ─── MODEL ZOO TABLE ─── */
+    .nf-table {
+      width: 100%;
+      font-size: 0.82rem;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+
+    .nf-table th {
+      font-family: 'Orbitron', monospace;
+      font-size: 0.65rem;
+      color: var(--nf-muted);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--nf-border);
+      text-align: left;
+    }
+
+    .nf-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(26,37,68,0.5);
+      vertical-align: middle;
+    }
+
+    .nf-table tr:hover td { background: rgba(0,245,255,0.03); }
+
+    /* ─── SECTION HEADERS ─── */
+    .nf-section-header {
+      font-family: 'Orbitron', monospace;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--nf-cyan);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .nf-section-header::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, var(--nf-border), transparent);
+    }
+
+    /* ─── PAGES ─── */
+    .nf-page { display: none; }
+    .nf-page.active { display: block; }
+
+    /* ─── NETWORK LAYERS BUILDER ─── */
+    .layer-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--nf-surface);
+      border: 1px solid var(--nf-border);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 0.78rem;
+      font-family: 'JetBrains Mono', monospace;
+      cursor: grab;
+      margin: 4px;
+      transition: all 0.2s;
+      color: var(--nf-cyan);
+    }
+
+    .layer-chip:hover {
+      border-color: var(--nf-cyan);
+      box-shadow: var(--nf-glow-cyan);
+    }
+
+    .arch-layer {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--nf-surface);
+      border: 1px solid var(--nf-border);
+      border-radius: 8px;
+      padding: 10px 16px;
+      margin-bottom: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      transition: border-color 0.2s;
+    }
+
+    .arch-layer:hover { border-color: var(--nf-purple); }
+    .arch-layer .layer-type { color: var(--nf-purple); font-weight: 600; min-width: 100px; }
+    .arch-layer .layer-params { color: var(--nf-muted); font-size: 0.75rem; }
+
+    /* ─── SCROLLBARS ─── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--nf-bg); }
+    ::-webkit-scrollbar-thumb { background: var(--nf-border); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--nf-muted); }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 992px) {
+      .nf-sidebar { display: none; }
+      .nf-main { margin-left: 0; }
+    }
+
+    /* ─── ANIMATIONS ─── */
+    @keyframes fade-in-up {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .nf-page.active { animation: fade-in-up 0.3s ease; }
+  </style>
+</head>
+<body>
+
+<!-- ═══ NAVBAR ═══ -->
+<nav class="nf-navbar d-flex align-items-center justify-content-between">
+  <div class="d-flex align-items-center gap-3">
+    <span class="nf-logo">⚡ NEURAL<span style="color:var(--nf-purple)">FORGE</span></span>
+    <span class="nf-badge">STUDIO v0.1</span>
+  </div>
+  <div class="d-flex align-items-center gap-3">
+    <span class="d-flex align-items-center" style="font-size:0.8rem; color:var(--nf-muted)">
+      <span class="status-dot" id="conn-dot"></span>
+      <span id="conn-status">Connecting…</span>
+    </span>
+    <span style="font-family:'JetBrains Mono';font-size:0.75rem;color:var(--nf-muted)" id="gpu-badge">GPU: —</span>
+  </div>
+</nav>
+
+<!-- ═══ LAYOUT ═══ -->
+<div class="d-flex">
+
+  <!-- ─── SIDEBAR ─── -->
+  <aside class="nf-sidebar">
+    <div class="nf-nav-item active" data-page="dashboard"><i class="bi bi-grid-1x2-fill"></i> Dashboard</div>
+    <div class="nf-nav-item" data-page="builder"><i class="bi bi-diagram-3-fill"></i> Network Builder</div>
+    <div class="nf-nav-item" data-page="training"><i class="bi bi-activity"></i> Training</div>
+    <div class="nf-nav-item" data-page="onnx"><i class="bi bi-box-seam"></i> ONNX Zoo</div>
+    <div class="nf-nav-item" data-page="netron"><i class="bi bi-eye-fill"></i> Netron Viewer</div>
+    <div class="nf-nav-item" data-page="assistant"><i class="bi bi-stars"></i> AI Assistant</div>
+    <div class="nf-nav-item" data-page="settings"><i class="bi bi-sliders"></i> Settings</div>
+
+    <div class="mt-auto px-4" style="position:absolute;bottom:20px;left:0;right:0">
+      <div style="font-size:0.7rem;color:var(--nf-muted);margin-bottom:8px;font-family:'Orbitron',monospace;letter-spacing:1px">SYSTEM</div>
+      <div class="mb-2">
+        <div class="d-flex justify-content-between mb-1" style="font-size:0.72rem">
+          <span style="color:var(--nf-muted)">GPU VRAM</span>
+          <span id="vram-pct" class="cyan" style="font-family:'JetBrains Mono',monospace">—</span>
+        </div>
+        <div class="gpu-gauge-wrap">
+          <div class="gpu-gauge-fill" id="vram-bar" style="width:0%;background:linear-gradient(90deg,var(--nf-cyan),var(--nf-purple))"></div>
+        </div>
+      </div>
+      <div>
+        <div class="d-flex justify-content-between mb-1" style="font-size:0.72rem">
+          <span style="color:var(--nf-muted)">RAM</span>
+          <span id="ram-pct" class="purple" style="font-family:'JetBrains Mono',monospace">—</span>
+        </div>
+        <div class="gpu-gauge-wrap">
+          <div class="gpu-gauge-fill" id="ram-bar" style="width:0%;background:linear-gradient(90deg,var(--nf-purple),var(--nf-pink))"></div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ─── MAIN ─── -->
+  <main class="nf-main flex-grow-1">
+
+    <!-- ════════ PAGE: DASHBOARD ════════ -->
+    <div class="nf-page active" id="page-dashboard">
+      <div class="nf-section-header"><i class="bi bi-grid-1x2-fill"></i> System Dashboard</div>
+
+      <!-- Stat Row -->
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+          <div class="nf-card nf-stat">
+            <div class="nf-stat-value cyan" id="stat-gpu-util">—</div>
+            <div class="nf-stat-label">GPU Util %</div>
+            <div class="nf-progress mt-2"><div class="nf-progress-bar" id="bar-gpu-util" style="width:0%"></div></div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="nf-card nf-stat">
+            <div class="nf-stat-value purple" id="stat-vram">—</div>
+            <div class="nf-stat-label">VRAM Used GB</div>
+            <div class="nf-progress mt-2"><div class="nf-progress-bar" id="bar-vram" style="width:0%;background:linear-gradient(90deg,var(--nf-purple),var(--nf-pink))"></div></div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="nf-card nf-stat">
+            <div class="nf-stat-value green" id="stat-cpu">—</div>
+            <div class="nf-stat-label">CPU %</div>
+            <div class="nf-progress mt-2"><div class="nf-progress-bar" id="bar-cpu" style="width:0%;background:linear-gradient(90deg,var(--nf-green),var(--nf-cyan))"></div></div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="nf-card nf-stat">
+            <div class="nf-stat-value orange" id="stat-temp">—</div>
+            <div class="nf-stat-label">GPU Temp °C</div>
+            <div class="nf-progress mt-2"><div class="nf-progress-bar" id="bar-temp" style="width:0%;background:linear-gradient(90deg,var(--nf-orange),var(--nf-pink))"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts Row -->
+      <div class="row g-3 mb-4">
+        <div class="col-md-6">
+          <div class="nf-card">
+            <div class="nf-card-title">GPU Utilization History</div>
+            <div id="chart-gpu" style="height:180px"></div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="nf-card">
+            <div class="nf-card-title">VRAM Usage History</div>
+            <div id="chart-vram" style="height:180px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GPU Info -->
+      <div class="nf-card">
+        <div class="nf-card-title">Hardware Profile</div>
+        <div class="row g-3" id="hw-profile">
+          <div class="col-auto"><span style="color:var(--nf-muted);font-size:0.8rem">Loading…</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════ PAGE: NETWORK BUILDER ════════ -->
+    <div class="nf-page" id="page-builder">
+      <div class="nf-section-header"><i class="bi bi-diagram-3-fill"></i> Network Builder</div>
+      <div class="row g-3">
+        <!-- Palette -->
+        <div class="col-md-3">
+          <div class="nf-card" style="min-height:500px">
+            <div class="nf-card-title">Layer Palette</div>
+            <div class="mb-3">
+              <div style="font-size:0.7rem;color:var(--nf-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">Linear</div>
+              <span class="layer-chip" data-layer="Linear" data-params="in=128, out=64">Linear</span>
+              <span class="layer-chip" data-layer="Embedding" data-params="num=1000, dim=64">Embedding</span>
+            </div>
+            <div class="mb-3">
+              <div style="font-size:0.7rem;color:var(--nf-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">Activation</div>
+              <span class="layer-chip" data-layer="ReLU" data-params="">ReLU</span>
+              <span class="layer-chip" data-layer="GELU" data-params="">GELU</span>
+              <span class="layer-chip" data-layer="SiLU" data-params="">SiLU</span>
+              <span class="layer-chip" data-layer="Tanh" data-params="">Tanh</span>
+            </div>
+            <div class="mb-3">
+              <div style="font-size:0.7rem;color:var(--nf-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">Conv</div>
+              <span class="layer-chip" data-layer="Conv2d" data-params="in=3, out=64, k=3">Conv2d</span>
+              <span class="layer-chip" data-layer="Conv1d" data-params="in=1, out=32, k=3">Conv1d</span>
+              <span class="layer-chip" data-layer="ConvTranspose2d" data-params="in=64, out=3, k=4">ConvT2d</span>
+            </div>
+            <div class="mb-3">
+              <div style="font-size:0.7rem;color:var(--nf-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">Normalization</div>
+              <span class="layer-chip" data-layer="BatchNorm2d" data-params="features=64">BatchNorm2d</span>
+              <span class="layer-chip" data-layer="LayerNorm" data-params="shape=[64]">LayerNorm</span>
+              <span class="layer-chip" data-layer="GroupNorm" data-params="groups=8, ch=64">GroupNorm</span>
+            </div>
+            <div class="mb-3">
+              <div style="font-size:0.7rem;color:var(--nf-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">Regularization</div>
+              <span class="layer-chip" data-layer="Dropout" data-params="p=0.5">Dropout</span>
+              <span class="layer-chip" data-layer="Dropout2d" data-params="p=0.2">Dropout2d</span>
+            </div>
+            <div class="mb-3">
+              <div style="font-size:0.7rem;color:var(--nf-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">Pooling</div>
+              <span class="layer-chip" data-layer="MaxPool2d" data-params="k=2">MaxPool2d</span>
+              <span class="layer-chip" data-layer="AvgPool2d" data-params="k=2">AvgPool2d</span>
+              <span class="layer-chip" data-layer="AdaptiveAvgPool2d" data-params="out=1">AdaptAvgPool</span>
+            </div>
+            <div class="mb-3">
+              <div style="font-size:0.7rem;color:var(--nf-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">Attention</div>
+              <span class="layer-chip" data-layer="MultiheadAttention" data-params="dim=64, heads=8">MHA</span>
+              <span class="layer-chip" data-layer="TransformerEncoderLayer" data-params="dim=64, heads=8">TransformerLayer</span>
+            </div>
+            <div>
+              <div style="font-size:0.7rem;color:var(--nf-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">Graph (PyG)</div>
+              <span class="layer-chip" data-layer="GCNConv" data-params="in=64, out=64" style="color:var(--nf-purple)">GCNConv</span>
+              <span class="layer-chip" data-layer="GATv2Conv" data-params="in=64, out=64, heads=4" style="color:var(--nf-purple)">GATv2</span>
+              <span class="layer-chip" data-layer="SAGEConv" data-params="in=64, out=64" style="color:var(--nf-purple)">SAGEConv</span>
+              <span class="layer-chip" data-layer="GINConv" data-params="mlp=..." style="color:var(--nf-purple)">GINConv</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Architecture Canvas -->
+        <div class="col-md-6">
+          <div class="nf-card" style="min-height:500px">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div class="nf-card-title mb-0">Architecture</div>
+              <div class="d-flex gap-2">
+                <button class="btn-nf-ghost btn" onclick="clearArch()"><i class="bi bi-trash"></i> Clear</button>
+                <button class="btn-nf-primary btn" onclick="generateCode()"><i class="bi bi-code-slash"></i> Generate Code</button>
+              </div>
+            </div>
+            <div id="arch-canvas" style="min-height:380px">
+              <div style="color:var(--nf-muted);font-size:0.82rem;text-align:center;padding-top:60px">
+                <i class="bi bi-arrow-left-circle" style="font-size:2rem;display:block;margin-bottom:12px;color:var(--nf-border)"></i>
+                Click layers from the palette to add them here
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Code Preview -->
+        <div class="col-md-3">
+          <div class="nf-card" style="min-height:500px">
+            <div class="nf-card-title">Generated Code</div>
+            <pre id="code-preview" style="background:#000;border-radius:8px;padding:12px;font-size:0.72rem;font-family:'JetBrains Mono',monospace;color:var(--nf-green);min-height:420px;overflow-y:auto;white-space:pre-wrap">
+<span class="log-dim"># Click "Generate Code"
+# to see your model here</span>
+            </pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════ PAGE: TRAINING ════════ -->
+    <div class="nf-page" id="page-training">
+      <div class="nf-section-header"><i class="bi bi-activity"></i> Training Studio</div>
+      <div class="row g-3">
+        <!-- Config Panel -->
+        <div class="col-md-3">
+          <div class="nf-card">
+            <div class="nf-card-title">Training Config</div>
+            <div class="mb-3">
+              <label class="nf-label">Model</label>
+              <select class="nf-select" id="cfg-model">
+                <option>ResNet-50</option>
+                <option>Custom (Builder)</option>
+                <option>GCN</option>
+                <option>GAT</option>
+                <option>GraphSAGE</option>
+                <option>GIN</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="nf-label">Dataset</label>
+              <select class="nf-select" id="cfg-dataset">
+                <option>CIFAR-10</option>
+                <option>CIFAR-100</option>
+                <option>ImageNet</option>
+                <option>MNIST</option>
+                <option>Custom</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="nf-label">Epochs</label>
+              <input class="nf-input" type="number" id="cfg-epochs" value="20" min="1" max="1000" />
+            </div>
+            <div class="mb-3">
+              <label class="nf-label">Learning Rate</label>
+              <input class="nf-input" type="text" id="cfg-lr" value="0.001" />
+            </div>
+            <div class="mb-3">
+              <label class="nf-label">Batch Size</label>
+              <input class="nf-input" type="number" id="cfg-batch" value="64" />
+            </div>
+            <div class="mb-3">
+              <label class="nf-label">Optimizer</label>
+              <select class="nf-select" id="cfg-optim">
+                <option>AdamW</option>
+                <option>Adam</option>
+                <option>SGD</option>
+                <option>Lion</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="nf-label">Precision</label>
+              <select class="nf-select" id="cfg-prec">
+                <option value="bf16">BF16 (RTX 5090)</option>
+                <option value="fp16">FP16</option>
+                <option value="fp32">FP32</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="nf-label">Scheduler</label>
+              <select class="nf-select" id="cfg-sched">
+                <option>Cosine</option>
+                <option>Step</option>
+                <option>Plateau</option>
+                <option>None</option>
+              </select>
+            </div>
+            <div class="d-grid gap-2">
+              <button class="btn btn-nf-primary" id="btn-train" onclick="startTraining()">
+                <i class="bi bi-play-fill"></i> START TRAINING
+              </button>
+              <button class="btn btn-nf-danger" id="btn-stop" onclick="stopTraining()" disabled>
+                <i class="bi bi-stop-fill"></i> Stop
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Charts -->
+        <div class="col-md-9">
+          <div class="row g-3 mb-3">
+            <div class="col-md-3">
+              <div class="nf-card nf-stat">
+                <div class="nf-stat-value cyan" id="live-epoch">0/0</div>
+                <div class="nf-stat-label">Epoch</div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="nf-card nf-stat">
+                <div class="nf-stat-value purple" id="live-loss">—</div>
+                <div class="nf-stat-label">Train Loss</div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="nf-card nf-stat">
+                <div class="nf-stat-value green" id="live-acc">—</div>
+                <div class="nf-stat-label">Val Acc</div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="nf-card nf-stat">
+                <div class="nf-stat-value orange" id="live-lr">—</div>
+                <div class="nf-stat-label">LR</div>
+              </div>
+            </div>
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <div class="nf-card">
+                <div class="nf-card-title">Loss Curves</div>
+                <div id="chart-loss" style="height:220px"></div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="nf-card">
+                <div class="nf-card-title">Accuracy</div>
+                <div id="chart-acc" style="height:220px"></div>
+              </div>
+            </div>
+          </div>
+          <div class="nf-card">
+            <div class="nf-card-title">Training Log</div>
+            <div class="nf-terminal" id="train-log">
+              <span class="log-dim">Waiting for training to start…</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════ PAGE: ONNX ZOO ════════ -->
+    <div class="nf-page" id="page-onnx">
+      <div class="nf-section-header"><i class="bi bi-box-seam"></i> ONNX Model Zoo</div>
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          <select class="nf-select" id="onnx-category" onchange="loadOnnxModels()">
+            <option value="">All Categories</option>
+            <option value="vision/classification">Vision — Classification</option>
+            <option value="vision/detection">Vision — Detection</option>
+            <option value="vision/body_analysis">Vision — Body Analysis</option>
+            <option value="nlp">NLP</option>
+          </select>
+        </div>
+        <div class="col-auto">
+          <button class="btn btn-nf-ghost" onclick="loadOnnxModels()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+        </div>
+      </div>
+      <div class="nf-card">
+        <table class="nf-table">
+          <thead>
+            <tr>
+              <th>Model</th>
+              <th>Category</th>
+              <th>Description</th>
+              <th>Opset</th>
+              <th>Cached</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="onnx-table-body">
+            <tr><td colspan="6" style="color:var(--nf-muted);text-align:center;padding:30px">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ════════ PAGE: NETRON ════════ -->
+    <div class="nf-page" id="page-netron">
+      <div class="nf-section-header"><i class="bi bi-eye-fill"></i> Netron Model Viewer</div>
+      <div class="nf-card mb-3">
+        <div class="nf-card-title">Open Model</div>
+        <div class="d-flex gap-3 align-items-end">
+          <div class="flex-grow-1">
+            <label class="nf-label">Local Model File (.onnx / .pt / .pb)</label>
+            <input type="file" class="nf-input" id="netron-file" accept=".onnx,.pt,.pb,.h5,.tflite" />
+          </div>
+          <button class="btn btn-nf-primary" onclick="openNetron()"><i class="bi bi-eye"></i> Visualize</button>
+        </div>
+        <div class="mt-3" style="font-size:0.8rem;color:var(--nf-muted)">
+          Or open <a href="https://netron.app" target="_blank" style="color:var(--nf-cyan)">Netron.app</a> in a new tab and drag your exported model there.
+        </div>
+      </div>
+      <div class="nf-card">
+        <div class="nf-card-title">Netron Viewer</div>
+        <iframe id="netron-frame" src="https://netron.app" style="width:100%;height:600px;border:none;border-radius:8px;background:#000"></iframe>
+      </div>
+    </div>
+
+    <!-- ════════ PAGE: AI ASSISTANT ════════ -->
+    <div class="nf-page" id="page-assistant">
+      <div class="nf-section-header"><i class="bi bi-stars"></i> AI Assistant (Claude Sonnet)</div>
+      <div class="row g-3">
+        <div class="col-md-8">
+          <div class="nf-card" style="height:500px;display:flex;flex-direction:column">
+            <div class="nf-card-title">Chat</div>
+            <div class="nf-chat-box flex-grow-1 mb-3" id="chat-box">
+              <div class="chat-msg-ai">
+                <span>⚡ Hey! I'm your NeuralForge AI assistant, powered by Claude Sonnet. Ask me anything about neural architectures, hyperparameter tuning, PyTorch, PyG, ONNX, or debugging your models.</span>
+              </div>
+            </div>
+            <div class="d-flex gap-2">
+              <input class="nf-input" id="chat-input" placeholder="Ask about architectures, tuning, PyTorch…" onkeydown="if(event.key==='Enter') sendChat()" />
+              <button class="btn btn-nf-primary" onclick="sendChat()"><i class="bi bi-send-fill"></i></button>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="nf-card">
+            <div class="nf-card-title">Quick Prompts</div>
+            <div class="d-flex flex-column gap-2">
+              <button class="btn btn-nf-ghost text-start" onclick="setPrompt('Design a GNN for molecular property prediction')">🧬 GNN for molecules</button>
+              <button class="btn btn-nf-ghost text-start" onclick="setPrompt('Best hyperparameters for image classification on CIFAR-10 with ResNet-50')">🖼️ CIFAR-10 tuning</button>
+              <button class="btn btn-nf-ghost text-start" onclick="setPrompt('How do I export my PyTorch model to ONNX and run it with ONNX Runtime GPU?')">📦 ONNX export</button>
+              <button class="btn btn-nf-ghost text-start" onclick="setPrompt('Explain the difference between GCN, GAT, GraphSAGE, and GIN')">🔗 GNN comparison</button>
+              <button class="btn btn-nf-ghost text-start" onclick="setPrompt('How to optimize training for RTX 5090 with BF16 and torch.compile?')">⚡ RTX 5090 tips</button>
+              <button class="btn btn-nf-ghost text-start" onclick="setPrompt('Debug this loss: my model diverges after epoch 3')">🐛 Debug divergence</button>
+            </div>
+          </div>
+          <div class="nf-card mt-3">
+            <div class="nf-card-title">API Key</div>
+            <label class="nf-label">Anthropic API Key</label>
+            <input class="nf-input" type="password" id="anthropic-key" placeholder="sk-ant-…" />
+            <button class="btn btn-nf-ghost mt-2 w-100" onclick="saveApiKey()">Save Key</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════ PAGE: SETTINGS ════════ -->
+    <div class="nf-page" id="page-settings">
+      <div class="nf-section-header"><i class="bi bi-sliders"></i> Settings</div>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <div class="nf-card">
+            <div class="nf-card-title">Device</div>
+            <div class="mb-3">
+              <label class="nf-label">Compute Device</label>
+              <select class="nf-select">
+                <option>Auto (CUDA preferred)</option>
+                <option>CUDA:0 (RTX 5090)</option>
+                <option>CPU</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="nf-label">Default Precision</label>
+              <select class="nf-select">
+                <option>BF16 (Recommended for RTX 5090)</option>
+                <option>FP16</option>
+                <option>FP32</option>
+              </select>
+            </div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" checked />
+              <label class="form-check-label" style="font-size:0.85rem">Enable torch.compile (Inductor)</label>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="nf-card">
+            <div class="nf-card-title">Storage Paths</div>
+            <div class="mb-3">
+              <label class="nf-label">Checkpoint Directory</label>
+              <input class="nf-input" value="./checkpoints" />
+            </div>
+            <div class="mb-3">
+              <label class="nf-label">ONNX Model Zoo Cache</label>
+              <input class="nf-input" value="./models/onnx_zoo" />
+            </div>
+            <div class="mb-3">
+              <label class="nf-label">Export Directory</label>
+              <input class="nf-input" value="./models/exports" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ═══ SCRIPTS ═══ -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+
+// ─── NAVIGATION ────────────────────────────────────────────────────────────
+document.querySelectorAll('.nf-nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nf-nav-item').forEach(i => i.classList.remove('active'));
+    document.querySelectorAll('.nf-page').forEach(p => p.classList.remove('active'));
+    item.classList.add('active');
+    const page = item.dataset.page;
+    document.getElementById('page-' + page)?.classList.add('active');
+    if (page === 'onnx') loadOnnxModels();
+  });
+});
+
+// ─── SOCKET.IO ─────────────────────────────────────────────────────────────
+const socket = io();
+
+socket.on('connect', () => {
+  setConnStatus('active', 'Connected');
+});
+
+socket.on('disconnect', () => {
+  setConnStatus('idle', 'Disconnected');
+});
+
+socket.on('training_update', (m) => {
+  updateTrainingMetrics(m);
+  log(`Epoch ${m.epoch}/${m.total_epochs} | loss: ${m.train_loss.toFixed(5)} | val: ${m.val_loss.toFixed(5)} | acc: ${(m.val_acc*100).toFixed(1)}%`, 'ok');
+});
+
+socket.on('training_complete', (d) => {
+  log('✅ ' + d.msg, 'ok');
+  document.getElementById('btn-train').disabled = false;
+  document.getElementById('btn-stop').disabled = true;
+});
+
+socket.on('training_stopped', () => {
+  log('⏹ Training stopped.', 'warn');
+  document.getElementById('btn-train').disabled = false;
+  document.getElementById('btn-stop').disabled = true;
+});
+
+function setConnStatus(state, text) {
+  const dot = document.getElementById('conn-dot');
+  dot.className = 'status-dot ' + state;
+  document.getElementById('conn-status').textContent = text;
+}
+
+// ─── SYSTEM MONITORING ─────────────────────────────────────────────────────
+const gpuUtilHistory  = [];
+const vramHistory     = [];
+
+async function fetchSystemInfo() {
+  try {
+    const r = await fetch('/api/system');
+    const d = await r.json();
+
+    // Stat widgets
+    const gpuUtil = d.gpu_util_percent ?? 0;
+    const vramUsed = d.gpu_vram_used_gb ?? 0;
+    const vramTotal = d.gpu_vram_total_gb ?? 32;
+    const cpuPct = d.cpu_percent ?? 0;
+    const temp = d.gpu_temp_c ?? 0;
+
+    document.getElementById('stat-gpu-util').textContent = gpuUtil + '%';
+    document.getElementById('stat-vram').textContent = vramUsed.toFixed(1);
+    document.getElementById('stat-cpu').textContent = cpuPct.toFixed(0) + '%';
+    document.getElementById('stat-temp').textContent = temp + '°';
+
+    document.getElementById('bar-gpu-util').style.width = gpuUtil + '%';
+    document.getElementById('bar-vram').style.width = (vramUsed / vramTotal * 100) + '%';
+    document.getElementById('bar-cpu').style.width = cpuPct + '%';
+    document.getElementById('bar-temp').style.width = Math.min(temp / 100 * 100, 100) + '%';
+
+    // Sidebar gauges
+    document.getElementById('vram-pct').textContent = vramUsed.toFixed(1) + ' / ' + vramTotal.toFixed(0) + ' GB';
+    document.getElementById('vram-bar').style.width = (vramUsed / vramTotal * 100) + '%';
+    document.getElementById('ram-pct').textContent = d.ram_used_gb?.toFixed(1) + ' / ' + d.ram_total_gb + ' GB';
+    document.getElementById('ram-bar').style.width = (d.ram_percent ?? 0) + '%';
+
+    // Navbar badge
+    document.getElementById('gpu-badge').textContent = d.gpu_name ? `GPU: ${d.gpu_name} | ${vramUsed.toFixed(1)}GB` : 'No GPU';
+
+    // Hardware profile (first call)
+    if (!window._hwProfileLoaded && d.gpu_name) {
+      window._hwProfileLoaded = true;
+      document.getElementById('hw-profile').innerHTML = `
+        <div class="col-auto"><div class="nf-card" style="padding:12px 16px;border-color:var(--nf-cyan)">
+          <div style="font-size:0.7rem;color:var(--nf-muted)">GPU</div>
+          <div style="font-family:'JetBrains Mono';color:var(--nf-cyan);font-size:0.9rem">${d.gpu_name}</div>
+        </div></div>
+        <div class="col-auto"><div class="nf-card" style="padding:12px 16px">
+          <div style="font-size:0.7rem;color:var(--nf-muted)">VRAM</div>
+          <div style="font-family:'JetBrains Mono';color:var(--nf-purple)">${vramTotal} GB</div>
+        </div></div>
+        <div class="col-auto"><div class="nf-card" style="padding:12px 16px">
+          <div style="font-size:0.7rem;color:var(--nf-muted)">CUDA</div>
+          <div style="font-family:'JetBrains Mono';color:var(--nf-green)">${d.cuda_version ?? 'N/A'}</div>
+        </div></div>
+        <div class="col-auto"><div class="nf-card" style="padding:12px 16px">
+          <div style="font-size:0.7rem;color:var(--nf-muted)">RAM</div>
+          <div style="font-family:'JetBrains Mono';color:var(--nf-text)">${d.ram_total_gb} GB</div>
+        </div></div>
+      `;
+    }
+
+    // History
+    const now = new Date().toLocaleTimeString();
+    gpuUtilHistory.push({ t: now, v: gpuUtil });
+    vramHistory.push({ t: now, v: vramUsed });
+    if (gpuUtilHistory.length > 60) gpuUtilHistory.shift();
+    if (vramHistory.length > 60) vramHistory.shift();
+    updateDashboardCharts();
+  } catch(e) {}
+}
+
+function updateDashboardCharts() {
+  const layout = {
+    paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
+    margin: {l:30,r:10,t:5,b:30},
+    font: {color:'#4a5680', size:10},
+    xaxis: {showgrid:false, color:'#1a2544'},
+    yaxis: {showgrid:true, gridcolor:'#1a2544', color:'#4a5680'},
+  };
+  Plotly.react('chart-gpu', [{
+    x: gpuUtilHistory.map(d=>d.t), y: gpuUtilHistory.map(d=>d.v),
+    type:'scatter', mode:'lines', fill:'tozeroy',
+    line:{color:'#00f5ff', width:2},
+    fillcolor:'rgba(0,245,255,0.08)',
+  }], {...layout, yaxis:{...layout.yaxis, range:[0,100]}}, {responsive:true, displayModeBar:false});
+
+  Plotly.react('chart-vram', [{
+    x: vramHistory.map(d=>d.t), y: vramHistory.map(d=>d.v),
+    type:'scatter', mode:'lines', fill:'tozeroy',
+    line:{color:'#8b5cf6', width:2},
+    fillcolor:'rgba(139,92,246,0.08)',
+  }], layout, {responsive:true, displayModeBar:false});
+}
+
+setInterval(fetchSystemInfo, 2000);
+fetchSystemInfo();
+
+// ─── TRAINING ──────────────────────────────────────────────────────────────
+const lossEpochs=[], trainLoss=[], valLoss=[], trainAcc=[], valAcc=[];
+
+function startTraining() {
+  lossEpochs.length=trainLoss.length=valLoss.length=trainAcc.length=valAcc.length=0;
+  clearLog();
+  log('⚡ Starting training...', 'info');
+  const cfg = {
+    epochs: parseInt(document.getElementById('cfg-epochs').value) || 20,
+    lr: parseFloat(document.getElementById('cfg-lr').value) || 0.001,
+  };
+  socket.emit('start_training', cfg);
+  document.getElementById('btn-train').disabled = true;
+  document.getElementById('btn-stop').disabled = false;
+}
+
+function stopTraining() {
+  socket.emit('stop_training');
+}
+
+function updateTrainingMetrics(m) {
+  document.getElementById('live-epoch').textContent = `${m.epoch}/${m.total_epochs}`;
+  document.getElementById('live-loss').textContent = m.train_loss.toFixed(4);
+  document.getElementById('live-acc').textContent = (m.val_acc*100).toFixed(1)+'%';
+  document.getElementById('live-lr').textContent = m.lr.toExponential(2);
+
+  lossEpochs.push(m.epoch);
+  trainLoss.push(m.train_loss);
+  valLoss.push(m.val_loss);
+  trainAcc.push(m.train_acc);
+  valAcc.push(m.val_acc);
+
+  const baseLayout = {
+    paper_bgcolor:'transparent', plot_bgcolor:'transparent',
+    margin:{l:40,r:10,t:5,b:30},
+    font:{color:'#4a5680',size:10},
+    xaxis:{showgrid:false,color:'#1a2544',title:{text:'Epoch',font:{color:'#4a5680'}}},
+    yaxis:{showgrid:true,gridcolor:'#1a2544',color:'#4a5680'},
+    legend:{font:{color:'#c9d4f0'},bgcolor:'transparent'},
+  };
+
+  Plotly.react('chart-loss', [
+    {x:lossEpochs, y:trainLoss, name:'Train', type:'scatter', mode:'lines', line:{color:'#00f5ff',width:2}},
+    {x:lossEpochs, y:valLoss,   name:'Val',   type:'scatter', mode:'lines', line:{color:'#8b5cf6',width:2,dash:'dot'}},
+  ], baseLayout, {responsive:true, displayModeBar:false});
+
+  Plotly.react('chart-acc', [
+    {x:lossEpochs, y:trainAcc.map(v=>v*100), name:'Train', type:'scatter', mode:'lines', line:{color:'#00ff9d',width:2}},
+    {x:lossEpochs, y:valAcc.map(v=>v*100),   name:'Val',   type:'scatter', mode:'lines', line:{color:'#f472b6',width:2,dash:'dot'}},
+  ], {...baseLayout, yaxis:{...baseLayout.yaxis, range:[0,100], title:{text:'Accuracy %',font:{color:'#4a5680'}}}}, {responsive:true, displayModeBar:false});
+}
+
+// ─── LOGGING ───────────────────────────────────────────────────────────────
+function log(msg, type='') {
+  const el = document.getElementById('train-log');
+  const line = document.createElement('div');
+  line.className = type ? 'log-'+type : '';
+  const now = new Date().toLocaleTimeString();
+  line.innerHTML = `<span class="log-dim">[${now}]</span> ${msg}`;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+
+function clearLog() {
+  document.getElementById('train-log').innerHTML = '';
+}
+
+// ─── NETWORK BUILDER ───────────────────────────────────────────────────────
+const archLayers = [];
+
+document.querySelectorAll('.layer-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const layer = chip.dataset.layer;
+    const params = chip.dataset.params;
+    archLayers.push({layer, params});
+    renderArch();
+  });
+});
+
+function renderArch() {
+  const canvas = document.getElementById('arch-canvas');
+  if (archLayers.length === 0) {
+    canvas.innerHTML = `<div style="color:var(--nf-muted);font-size:0.82rem;text-align:center;padding-top:60px">
+      <i class="bi bi-arrow-left-circle" style="font-size:2rem;display:block;margin-bottom:12px;color:var(--nf-border)"></i>
+      Click layers from the palette to add them here</div>`;
+    return;
+  }
+  canvas.innerHTML = archLayers.map((l, i) => `
+    <div class="arch-layer">
+      <span style="color:var(--nf-muted);font-size:0.7rem;width:20px">${i+1}</span>
+      <span class="layer-type">${l.layer}</span>
+      <span class="layer-params">${l.params || ''}</span>
+      <button class="btn btn-sm ms-auto" style="color:var(--nf-muted);background:none;border:none;padding:0" onclick="removeLayer(${i})"><i class="bi bi-x"></i></button>
+    </div>
+  `).join('');
+}
+
+function removeLayer(i) {
+  archLayers.splice(i, 1);
+  renderArch();
+}
+
+function clearArch() {
+  archLayers.length = 0;
+  renderArch();
+  document.getElementById('code-preview').innerHTML = '<span class="log-dim"># Click "Generate Code"\n# to see your model here</span>';
+}
+
+function generateCode() {
+  if (archLayers.length === 0) return;
+  const lines = [
+    'import torch',
+    'import torch.nn as nn',
+    '',
+    'class CustomModel(nn.Module):',
+    '    def __init__(self):',
+    '        super().__init__()',
+  ];
+  archLayers.forEach((l, i) => {
+    const p = l.params ? l.params : '';
+    lines.push(`        self.layer${i+1} = nn.${l.layer}(${p})`);
+  });
+  lines.push('');
+  lines.push('    def forward(self, x):');
+  archLayers.forEach((l, i) => {
+    lines.push(`        x = self.layer${i+1}(x)`);
+  });
+  lines.push('        return x');
+  lines.push('');
+  lines.push('model = CustomModel()');
+  document.getElementById('code-preview').textContent = lines.join('\n');
+}
+
+// ─── ONNX ZOO ──────────────────────────────────────────────────────────────
+async function loadOnnxModels() {
+  const cat = document.getElementById('onnx-category')?.value || '';
+  const tbody = document.getElementById('onnx-table-body');
+  tbody.innerHTML = '<tr><td colspan="6" style="color:var(--nf-muted);text-align:center;padding:30px">Loading…</td></tr>';
+  try {
+    const r = await fetch('/api/onnx/models' + (cat ? '?category=' + encodeURIComponent(cat) : ''));
+    const models = await r.json();
+    tbody.innerHTML = models.map(m => `
+      <tr>
+        <td style="font-family:'JetBrains Mono';color:var(--nf-cyan)">${m.name}</td>
+        <td style="color:var(--nf-muted);font-size:0.75rem">${m.category}</td>
+        <td>${m.description}</td>
+        <td style="color:var(--nf-purple)">${m.opset}</td>
+        <td>${m.cached ? '<span class="green">✓ Cached</span>' : '<span style="color:var(--nf-muted)">—</span>'}</td>
+        <td>
+          <button class="btn btn-nf-ghost btn-sm" onclick="downloadModel('${m.name}')">
+            <i class="bi bi-download"></i> Download
+          </button>
+        </td>
+      </tr>
+    `).join('');
+  } catch(e) {
+    tbody.innerHTML = '<tr><td colspan="6" style="color:#ff4444;text-align:center;padding:30px">Server not running</td></tr>';
+  }
+}
+
+async function downloadModel(name) {
+  const r = await fetch('/api/onnx/download/' + name, {method:'POST'});
+  const d = await r.json();
+  alert(d.status === 'ok' ? '✅ Downloaded: ' + d.path : '❌ ' + d.message);
+  loadOnnxModels();
+}
+
+// ─── NETRON ────────────────────────────────────────────────────────────────
+function openNetron() {
+  const file = document.getElementById('netron-file').files[0];
+  if (!file) { alert('Select a model file first'); return; }
+  const url = URL.createObjectURL(file);
+  // Open in the embedded iframe
+  document.getElementById('netron-frame').src = 'https://netron.app/?url=' + encodeURIComponent(url);
+}
+
+// ─── AI ASSISTANT ──────────────────────────────────────────────────────────
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+
+  const box = document.getElementById('chat-box');
+  box.innerHTML += `<div class="chat-msg-user"><span>${msg}</span></div>`;
+  box.innerHTML += `<div class="chat-msg-ai" id="ai-typing"><span style="color:var(--nf-muted)">⚡ Thinking…</span></div>`;
+  box.scrollTop = box.scrollHeight;
+
+  try {
+    const r = await fetch('/api/assistant/chat', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({message: msg}),
+    });
+    const d = await r.json();
+    document.getElementById('ai-typing').innerHTML = `<span>${d.response || d.error}</span>`;
+  } catch(e) {
+    document.getElementById('ai-typing').innerHTML = `<span style="color:#ff4444">Error connecting to AI assistant</span>`;
+  }
+  box.scrollTop = box.scrollHeight;
+}
+
+function setPrompt(text) {
+  document.getElementById('chat-input').value = text;
+  document.getElementById('chat-input').focus();
+}
+
+function saveApiKey() {
+  const key = document.getElementById('anthropic-key').value.trim();
+  if (key) {
+    localStorage.setItem('nf_anthropic_key', key);
+    alert('API key saved (session only)');
+  }
+}
+
+</script>
+</body>
+</html>
